@@ -1,7 +1,6 @@
 import cv2
 import os
 import concurrent.futures
-import numpy as np 
 
 class DataManager:
     """
@@ -23,6 +22,47 @@ class DataManager:
         ]
         return (set(all_files).difference(set(os.listdir(path_comp))))
 
+
+    @staticmethod
+    def read_image(file, path):
+        """ Read an image from a specified path. """
+        img_path = os.path.join(path, file)
+        img = cv2.imread(img_path)
+        if img is None:
+            raise FileNotFoundError(f"No image found at {img_path}")
+        return img
+
+    @staticmethod
+    def resize_image(img, shape):
+        """ Resize image to a specific shape, maintaining aspect ratio. """
+        h, w = img.shape[:2]
+        aspect_ratio = h / w
+        target_h, target_w = shape
+        if aspect_ratio > 1:
+            new_h, new_w = target_h, int(target_h / aspect_ratio) 
+        else:
+            new_w, new_h = target_w, int(target_w * aspect_ratio)
+
+        resized_img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        return resized_img
+
+    @staticmethod
+    def add_borders(img, shape):
+        """ Add black borders to maintain the desired aspect ratio. """
+        h, w = img.shape[:2]
+        top = bottom = (shape[0] - h) // 2
+        left = right = (shape[1] - w) // 2
+        color = [0, 0, 0]
+        new_img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+        return new_img
+
+    @staticmethod
+    def save_image(img, dest_path, file_name):
+        """ Save the image to the destination path. """
+        img_name = file_name.split('/')[-1]
+        full_path = os.path.join(dest_path, img_name)
+        cv2.imwrite(full_path, img)
+
     @staticmethod
     def read_and_compress_image(file, path, dest_path, shape):
         """
@@ -33,26 +73,10 @@ class DataManager:
         @param dest_path: The path to save the compressed image.
         @param shape: The desired shape of the image.
         """
-        img = cv2.imread(os.path.join(path, file))
-        h, w = img.shape[:2]
-        c = img.shape[2] if len(img.shape)>2 else 1
-        if h == w: 
-            return cv2.resize(img, shape, cv2.INTER_AREA)
-        
-        dif = h if h > w else w
-        interpolation = cv2.INTER_AREA if dif > (shape[0]+shape[1])//2 else  cv2.INTER_CUBIC
-        x_pos = (dif - w)//2
-        y_pos = (dif - h)//2
-        if len(img.shape) == 2:
-            mask = np.zeros((dif, dif), dtype=img.dtype)
-            mask[y_pos:y_pos+h, x_pos:x_pos+w] = img[:h, :w]
-        else:
-            mask = np.zeros((dif, dif, c), dtype=img.dtype)
-            mask[y_pos:y_pos+h, x_pos:x_pos+w, :] = img[:h, :w, :]
-
-        img = cv2.resize(mask, shape, interpolation)
-        img_name = file.split('/')[-1]
-        cv2.imwrite(os.path.join(dest_path, img_name), img)
+        img = DataManager.read_image(file, path)
+        resized_img = DataManager.resize_image(img, shape)
+        final_img = DataManager.add_borders(resized_img, shape)
+        DataManager.save_image(final_img, dest_path, file)
     
     @staticmethod
     def read_and_compress_files(path, dest_path, shape=(1024, 1024), max_workers=4, single_folder=False):
