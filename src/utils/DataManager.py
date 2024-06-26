@@ -1,7 +1,10 @@
+
 import cv2
 import os
 import concurrent.futures
-
+from utils.Plotter import Plotter as PL
+from utils.Processing import Processing as PR
+from utils.ImageExtractor import ImageExtractor as IE
 class DataManager:
     """
     Class to manage the data of the dataset.
@@ -87,6 +90,7 @@ class DataManager:
         @param dest_path: The path to save the compressed images.
         @param shape: The desired shape of the images.
         @param max_workers: The maximum number of threads to use.
+        @param single_folder: If the images are in a single folder or in multiple folders.
         """
         if not os.path.exists(dest_path):
             os.makedirs(dest_path)
@@ -115,3 +119,21 @@ class DataManager:
                     for file in all_files
                 ]
                 concurrent.futures.wait(futures)
+
+    @staticmethod
+    def extract_images(path, dest_path):
+        """
+        Extract images from a compressed file to a destination path.
+        @param path: The path to the compressed file.
+        @param dest_path: The path to save the extracted images.
+        """
+        all_files = os.listdir(path)
+        all_images = []
+        for file in all_files:
+            image = cv2.imread(os.path.join(path, file))
+            overlay_image, mask, extracted_images = IE.extract(image)
+            PL.plot_images([image, mask, overlay_image, extracted_images], ['Image', 'Mask', 'Overlay',' Extracted Images'])    
+            # all_images.extend(images)
+            # break
+
+        
