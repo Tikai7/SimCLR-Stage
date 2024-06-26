@@ -100,12 +100,14 @@ class DataManager:
                 ]
                 concurrent.futures.wait(futures)
         else:
+            computed_files = set(os.listdir(dest_path))
             rol_files = os.listdir(path)    
             rol_index = [f.split('rol')[1].zfill(2) for f in rol_files]
             all_files = [
                 f"{path}/{file}/dir{index}/" + filename 
                 for file, index in zip(rol_files, rol_index) 
                 for filename in os.listdir(f'{path}/{file}/dir{index}')
+                if filename not in computed_files
             ]
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [
