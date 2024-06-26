@@ -1,9 +1,7 @@
-
+from tqdm import tqdm
 import cv2
 import os
 import concurrent.futures
-from utils.Plotter import Plotter as PL
-from utils.Processing import Processing as PR
 from utils.ImageExtractor import ImageExtractor as IE
 class DataManager:
     """
@@ -128,12 +126,16 @@ class DataManager:
         @param dest_path: The path to save the extracted images.
         """
         all_files = os.listdir(path)
-        all_images = []
-        for file in all_files:
-            image = cv2.imread(os.path.join(path, file))
-            overlay_image, mask, extracted_images = IE.extract(image)
-            PL.plot_images([image, mask, overlay_image, extracted_images], ['Image', 'Mask', 'Overlay',' Extracted Images'])    
-            # all_images.extend(images)
-            # break
-
-        
+        all_processed_file = set(os.listdir(dest_path))
+        all_processed_file = set([file.split('_')[0] for file in all_processed_file])
+        for file in tqdm(all_files):
+            if file.split('_')[0] in all_processed_file:
+                continue
+            try : 
+                image = cv2.imread(os.path.join(path, file))
+                extracted_images = IE.extract_easy(image)
+                for i, img in enumerate(extracted_images):
+                    DataManager.save_image(img, dest_path, f"{file.split('.')[0]}_{i}.png")
+            except:
+                continue
+            

@@ -19,7 +19,25 @@ class SIFTDetector:
 
         best_match = max(all_matches, key=lambda x: x[1])
         return best_match
-    
+
+    @staticmethod
+    def saveSIFTDescriptors(all_images_sift, path):
+        for i, image_sift in enumerate(all_images_sift):
+            kp, des = image_sift
+            with open(f"{path}/sift_{i}.txt", "w") as f:
+                f.write(f"{kp}\n")
+                f.write(f"{des}\n")
+
+    @staticmethod
+    def loadSIFTDescriptors(path):
+        all_images_sift = []
+        for i in range(1000):
+            with open(f"{path}/sift_{i}.txt", "r") as f:
+                kp = f.readline()
+                des = f.readline()
+                all_images_sift.append((kp,des))
+        return all_images_sift
+
     @staticmethod
     def displayKeypoints(image_query, image_kp, image_best, image_best_kp, good_kp):
         image_result = cv2.drawMatchesKnn(image_query,image_kp,image_best,image_best_kp, good_kp, None, flags=2)

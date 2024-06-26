@@ -3,12 +3,51 @@ import numpy as np
 import cv2
 from utils.Processing import Processing as PR
 
+# Loading the model of Oscar's PRAT project
 model_path = "C:\Cours-Sorbonne\M1\Stage\doc\old_project_info\Archive\project-source-code-oskar-schade-zip_2024-02-19_1354\Project data\Final_model.h5"
 model = tf.keras.models.load_model(model_path, compile=False)
 
 class ImageExtractor:
+
+    @staticmethod
+    def extract_easy(image):
+        """
+        Extracts the images from a given image.
+        (Uses a simple method to extract the images.)
+        @param image: The image to extract the images from.
+        @return: The extracted images.
+        """
+        all_images = []
+        # Rendering the image to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # Applying Gaussian blur to the image
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        # Applying thresholding to the image to get binary image
+        _, thresh = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY_INV)
+        # Finding contours in the image
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for contour in contours:
+            # Filtering out the contours based on area and aspect ratio
+            if cv2.contourArea(contour) > 700000:  # value to adjust as needed
+                x, y, w, h = cv2.boundingRect(contour)
+                aspect_ratio = w / float(h)
+                if 0.5 < aspect_ratio < 1.5:  # Typical aspect ratio for images (GPT)
+                    cropped_image = image[y:y+h, x:x+w]
+                    all_images.append(cropped_image)
+        return all_images
+
+
+    ## ----------------- Oscar's PRAT project, Image Processing Functions ----------------- ##
+
     @staticmethod
     def extract(image):
+        """
+        Extracts the images from a given image.
+        (Uses the model to predict the mask and then extracts the images.)
+        @param image: The image to extract the images from.
+        @return: The extracted images.
+        """
+
         image_preprocessed, padding_info = ImageExtractor.pad_to_divisible(image)
         prepared_image = np.expand_dims(image_preprocessed, axis=0)
         predicted_mask = model.predict(prepared_image)
@@ -28,7 +67,6 @@ class ImageExtractor:
 
         return overlay_image, refined_mask, extracted_images
     
-    ## ----------------- Oscar's PRAT project, Image Processing Functions ----------------- ##
     @staticmethod
     # Defining function to pad image to nearest suitable dimensions (divisible by 2n)
     def pad_to_divisible(image, n=5):
