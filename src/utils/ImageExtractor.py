@@ -18,16 +18,11 @@ class ImageExtractor:
         @return: The extracted images.
         """
         all_images = []
-        # Rendering the image to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # Applying Gaussian blur to the image
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        # Applying thresholding to the image to get binary image
         _, thresh = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY_INV)
-        # Finding contours in the image
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for contour in contours:
-            # Filtering out the contours based on area and aspect ratio
             if cv2.contourArea(contour) > 700000:  # value to adjust as needed
                 x, y, w, h = cv2.boundingRect(contour)
                 aspect_ratio = w / float(h)
