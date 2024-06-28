@@ -96,14 +96,17 @@ class Similarity:
         ])
 
         def extract_features(img_path, model):
-            img = Image.open(img_path).convert('RGB')
-            img_t = preprocess(img)
-            batch_t = torch.unsqueeze(img_t, 0)
-            with torch.no_grad():
-                batch_t = batch_t.to(device)
-                features = model(batch_t)
-            return features.cpu().numpy().flatten()
-
+            try : 
+                img = Image.open(img_path).convert('RGB')
+                img_t = preprocess(img)
+                batch_t = torch.unsqueeze(img_t, 0)
+                with torch.no_grad():
+                    batch_t = batch_t.to(device)
+                    features = model(batch_t)
+                return features.cpu().numpy().flatten()
+            except:
+                return None
+            
         def extract_features_for_dataset(dataset_path, path_to_load, max_images=-1):
             features = []
             image_paths = []
@@ -116,8 +119,11 @@ class Similarity:
             for img_name in os.listdir(dataset_path)[:max_images]:
                 img_path = os.path.join(dataset_path, img_name)
                 if need_to_compute_features:
-                    features.append(extract_features(img_path, model))
-                image_paths.append(img_path)
+                    f = extract_features(img_path, model)
+                    if f is not None: 
+                        features.append(f)
+                if f is not None:
+                    image_paths.append(img_path)
             if need_to_compute_features:
                 features = np.array(features)
             return features, image_paths
