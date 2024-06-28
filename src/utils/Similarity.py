@@ -17,6 +17,9 @@ from sklearn.neighbors import NearestNeighbors
 
 path_sift_rol = "C:/Cours-Sorbonne/M1/Stage/src/params/rol" 
 path_sift_sim_rol = "C:/Cours-Sorbonne/M1/Stage/src/params/sim_rol" 
+path_resnet_rol = "C:/Cours-Sorbonne/M1/Stage/src/params/features_rol.npy"
+path_resnet_sim_rol = "C:/Cours-Sorbonne/M1/Stage/src/params/features_sim_rol.npy"
+path_matches = "C:/Cours-Sorbonne/M1/Stage/src/params/matches.npy"
 
 class Similarity:
     @staticmethod
@@ -101,31 +104,44 @@ class Similarity:
                 features = model(batch_t)
             return features.cpu().numpy().flatten()
 
-        def extract_features_for_dataset(dataset_path, max_images=-1):
+        def extract_features_for_dataset(dataset_path, path_to_load, max_images=-1):
             features = []
             image_paths = []
+            need_to_compute_features = True
+            try:
+                features = np.load(path_to_load)
+                need_to_compute_features = False
+            except:
+                pass
             for img_name in os.listdir(dataset_path)[:max_images]:
                 img_path = os.path.join(dataset_path, img_name)
-                features.append(extract_features(img_path, model))
+                if need_to_compute_features:
+                    features.append(extract_features(img_path, model))
                 image_paths.append(img_path)
-            return np.array(features), image_paths
+            if need_to_compute_features:
+                features = np.array(features)
+            return features, image_paths
+
+        print("Extracting features for sim images...")
+        features_small, image_paths_small = extract_features_for_dataset(path_to_match, path_resnet_sim_rol, max_images)
+        np.save(path_resnet_sim_rol, features_small)
 
         print("Extracting features for rol images...")
-        features_big, image_paths_big = extract_features_for_dataset(path, max_images)
-        print("Extracting features for sim images...")
-        features_small, image_paths_small = extract_features_for_dataset(path_to_match,max_images)
+        features_big, image_paths_big = extract_features_for_dataset(path, path_resnet_rol, max_images)
+        np.save(path_resnet_rol, features_big)
 
         print("Computing nearest neighbors...")
-        nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(features_small)
-        distances, indices = nbrs.kneighbors(features_big)
-        matches = [(image_paths_big[i], image_paths_small[indices[i][0]]) for i in range(len(image_paths_big)) if distances[i][0] < threshold]
+        
+        try:
+            matches = np.load(path_matches)
+        except:
+            nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(features_small)
+            distances, indices = nbrs.kneighbors(features_big)
+            matches = [(image_paths_big[i], image_paths_small[indices[i][0]]) for i in range(len(image_paths_big)) if distances[i][0] < threshold]
+            np.save(path_matches, matches)
 
         if plot : 
             for match in matches:
                 PL.plot_images([cv2.imread(match[0]), cv2.imread(match[1])], ["Original", "Best match"])
-
-        np.save("C:/Cours-Sorbonne/M1/Stage/src/params/matches.npy", matches)
-        np.save("C:/Cours-Sorbonne/M1/Stage/src/params/features_rol.npy", features_big)
-        np.save("C:/Cours-Sorbonne/M1/Stage/src/params/features_sim_rol.npy", features_small)
-
+                
         return matches, features_big, features_small
