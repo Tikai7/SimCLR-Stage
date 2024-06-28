@@ -118,12 +118,15 @@ class Similarity:
                 pass
             for img_name in os.listdir(dataset_path)[:max_images]:
                 img_path = os.path.join(dataset_path, img_name)
+                f = None
                 if need_to_compute_features:
                     f = extract_features(img_path, model)
                     if f is not None: 
                         features.append(f)
-                if f is not None:
+                # if f is not None:
+                if (need_to_compute_features and f is not None) or not need_to_compute_features:
                     image_paths.append(img_path)
+                    
             if need_to_compute_features:
                 features = np.array(features)
             return features, image_paths
@@ -140,6 +143,8 @@ class Similarity:
         
         try:
             matches = np.load(path_matches)
+            if matches.shape[0] == 0:
+                raise Exception
         except:
             nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(features_small)
             distances, indices = nbrs.kneighbors(features_big)
