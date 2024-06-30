@@ -143,7 +143,7 @@ class Similarity:
         
         try:
             matches = np.load(path_matches)
-            if matches.shape[0] == 0:
+            if matches.shape[0] < 100:
                 raise Exception
         except:
             nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(features_small)
