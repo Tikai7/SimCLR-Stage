@@ -2,6 +2,7 @@
 import os
 import requests
 from tqdm import tqdm
+import json
 class JSONRetriever:
     """
     Class to retrieve images from JSON files.
@@ -25,3 +26,24 @@ class JSONRetriever:
                     f.write(json_file.text) 
             except:
                 continue
+
+    @staticmethod
+    def filter_json(path, path_link):  
+        """
+        Filter JSON files.
+        @param path: The path to the json files.
+        @param path_link: The path to the images files that we want to link with the json files.
+        """
+        images_sim = set(map(lambda x: x.split('_')[0], os.listdir(path_link)))
+        for file in os.listdir(path+'/json'):
+            try:
+                data = json.load(open(f"{path}/json/{file}", encoding='utf-8'))
+                for obj in data['metadata']:
+                    if obj['label'] == 'Relation' and obj['value'].split('/')[-1] in images_sim:
+                        with open(f"{path}/json_filtered/{file}", "w", encoding='utf-8') as f:
+                            json.dump(data, f, ensure_ascii=False, indent=4)
+                        break
+            except:
+                continue    
+                
+                
