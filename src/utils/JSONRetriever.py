@@ -1,4 +1,4 @@
-
+import re
 import os
 import requests
 from tqdm import tqdm
@@ -35,15 +35,46 @@ class JSONRetriever:
         @param path_link: The path to the images files that we want to link with the json files.
         """
         images_sim = set(map(lambda x: x.split('_')[0], os.listdir(path_link)))
-        for file in os.listdir(path+'/json'):
+        for file in tqdm(os.listdir(path+'/json')):
             try:
                 data = json.load(open(f"{path}/json/{file}", encoding='utf-8'))
                 for obj in data['metadata']:
-                    if obj['label'] == 'Relation' and obj['value'].split('/')[-1] in images_sim:
-                        with open(f"{path}/json_filtered/{file}", "w", encoding='utf-8') as f:
-                            json.dump(data, f, ensure_ascii=False, indent=4)
-                        break
+                    found = False
+                    if obj['label'] == 'Relation':
+                        arks = re.findall("bpt.*", str(obj))
+                        for ark in arks:
+                            ark_id = re.sub("/.*", ".json", ark).split('.')[0]
+                            if ark_id in images_sim:        
+                                found = True                        
+                                with open(f"{path}/json_filtered/{file}", "w", encoding='utf-8') as f:
+                                    json.dump(data, f, ensure_ascii=False, indent=4)
+                                break
+                        if found:
+                            break
             except:
                 continue    
-                
+    
+    @staticmethod
+    def get_all_relations(path_filered_json):
+        liste_ark = []
+        for file in os.listdir(path_filered_json):
+            data = json.load(open(path_filered_json + "/" + file, "r", encoding="utf-8"))
+            for obj in data['metadata']:
+                if obj['label'] == "Relation":
+                    arks = re.findall("bpt.*", str(obj))
+                    for ark in arks :
+                        liste_ark.append(ark.replace("'}", "").split('/')[0])
+        return liste_ark
+            
+    @staticmethod
+    def assert_filtered_json(path_json_sim, path_json_filtered):
+        liste_ark = JSONRetriever.get_all_relations(f'{path_json_filtered}')
+        json_sim = os.listdir(f'{path_json_sim}')
+        cpt = 0
+        for file in json_sim:
+            if file.split(".")[0] in set(liste_ark):
+                cpt += 1
+        print(f"Number of json files in json_sim: {len(json_sim)}, number of json files in json_filtered: {cpt}")
+        # assert cpt == len(json_sim), f"Error: {cpt} != {len(json_sim)}"
+                        
                 

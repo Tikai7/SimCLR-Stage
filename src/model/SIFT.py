@@ -2,6 +2,8 @@ import cv2
 import matplotlib.pyplot as plt
 import pickle
 from tqdm import tqdm
+import concurrent.futures
+
 class SIFTDetector:
     @staticmethod
     def computeSIFT(image):
@@ -11,21 +13,28 @@ class SIFTDetector:
             return kp, des
         except:
             return None, None
+        
     @staticmethod
     def getBestMatch(image_query_des, liste_descriptor):
+        def compute_match(i, des):
+            bf = cv2.BFMatcher()
+            matches = bf.knnMatch(image_query_des, des, k=2)
+            good = [[m] for m, n in matches if m.distance < 0.75 * n.distance]
+            return i, len(good), good
+
         all_matches = []
-        bf = cv2.BFMatcher()
-        for i,des in tqdm(enumerate(liste_descriptor)):
-            try:
-                matches = bf.knnMatch(image_query_des,des, k=2)
-                good = [[m] for m,n in matches if m.distance < 0.75*n.distance]
-                all_matches.append((i,len(good),good))
-            except Exception as e:
-                print(e)
-                continue
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {executor.submit(compute_match, i, des): i for i, des in enumerate(liste_descriptor)}
+            
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(liste_descriptor)):
+                try:
+                    result = future.result()
+                    all_matches.append(result)
+                except Exception as e:
+                    print(f"Exception occurred for descriptor {futures[future]}: {e}")
 
         best_match = sorted(all_matches, key=lambda x: x[1], reverse=True)
-
         return best_match
 
     @staticmethod
