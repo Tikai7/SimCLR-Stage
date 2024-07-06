@@ -57,18 +57,26 @@ class JSONRetriever:
     @staticmethod
     def get_all_relations(path_filered_json):
         liste_ark = []
+        liste_triplet = {}
+
         for file in os.listdir(path_filered_json):
+            file_id = file.split(".")[0]
             data = json.load(open(path_filered_json + "/" + file, "r", encoding="utf-8"))
             for obj in data['metadata']:
                 if obj['label'] == "Relation":
                     arks = re.findall("bpt.*", str(obj))
                     for ark in arks :
                         liste_ark.append(ark.replace("'}", "").split('/')[0])
-        return liste_ark
+                        if file_id not in liste_triplet:
+                            liste_triplet[file_id] = [ark.replace("'}", "")]
+                        else:
+                            liste_triplet[file_id].append(ark.replace("'}", ""))
+
+        return liste_ark, liste_triplet
             
     @staticmethod
     def assert_filtered_json(path_json_sim, path_json_filtered):
-        liste_ark = JSONRetriever.get_all_relations(f'{path_json_filtered}')
+        liste_ark, _ = JSONRetriever.get_all_relations(f'{path_json_filtered}')
         json_sim = os.listdir(f'{path_json_sim}')
         cpt = 0
         for file in json_sim:

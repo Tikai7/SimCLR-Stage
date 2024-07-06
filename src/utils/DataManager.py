@@ -3,10 +3,18 @@ import cv2
 import os
 import concurrent.futures
 from utils.ImageExtractor import ImageExtractor as IE
+from utils.JSONRetriever import JSONRetriever as JR
 class DataManager:
     """
     Class to manage the data of the dataset.
     """
+
+    @staticmethod
+    def build_dataset(path_json_filtered):
+        _, liste_triplet = JR.get_all_relations(path_json_filtered)
+        print(f"Number of triplets: {len(liste_triplet)}")
+        return liste_triplet
+        
     @staticmethod
     def get_missing_files(path,path_comp):
         """
