@@ -37,10 +37,7 @@ class Trainer:
         self.optimizer = optimizer
         return self
 
-    def save_model(self, model_path, history_path):
-        assert os.path.exists(model_path), "[ERROR] model path does not exist"
-        assert os.path.exists(history_path), "[ERROR] history path does not exist"
-
+    def save(self, model_path : str = "model.pth", history_path : str = "history.txt"):
         torch.save(self.model.state_dict(), model_path)
         torch.save(self.history, history_path)
 
@@ -72,7 +69,7 @@ class Trainer:
             self.history['validation']['loss'].append(val_loss)
 
             
-        return self
+        return self.model
 
 
     def evaluate(self, test_data):

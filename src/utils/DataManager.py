@@ -65,7 +65,6 @@ class DataManager(Dataset):
             target = Image.open(target_file).convert('RGB')
             img = self.transform(img)
             target = self.transform(target)
-
             return img, target
         except Exception as e:
             print("[ERROR]", e)
