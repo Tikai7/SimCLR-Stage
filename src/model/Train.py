@@ -13,6 +13,7 @@ class Trainer:
                 "lr": None,
                 "epochs" : None,
                 "is_val" : None,
+                "model" : None,
             },
             "validation" : {
                 "loss" : []
@@ -25,9 +26,10 @@ class Trainer:
         self.loss_fn = loss_fn
         return self
 
-    def set_model(self, model):
+    def set_model(self, model, name):
         self.model = model
         self.model.to(self.device)
+        self.history['params']['model'] = name
         print(f"[INFO] Model's device is : {self.device}")
         return self
 
@@ -77,12 +79,10 @@ class Trainer:
         pass
 
     def _train(self, train_data):
+        print("Training...")
         losses = []
         self.model.train()
-        for batch_x, batch_y in train_data:  
-            if batch_x is None or batch_y is None:
-                print("[ERROR] Batch error in train")
-                continue
+        for batch_x, batch_y in tqdm(train_data):  
             batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
             y_hat = self.model(batch_x)
             loss = self.loss_fn(y_hat, batch_y)
@@ -93,13 +93,11 @@ class Trainer:
         return sum(losses)/len(train_data)
     
     def _validate(self, validation_data):
+        print("Validating...")
         losses = []
         self.model.eval()
         with torch.no_grad():
-            for batch_x, batch_y in validation_data:
-                if batch_x is None or batch_y is None:
-                    print("[ERROR] Batch error in validation")
-                    continue
+            for batch_x, batch_y in tqdm(validation_data):
                 batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
                 y_hat = self.model(batch_x)
                 loss = self.loss_fn(y_hat, batch_y)

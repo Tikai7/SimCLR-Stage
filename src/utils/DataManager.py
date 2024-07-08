@@ -4,6 +4,7 @@ import os
 import numpy as np
 import concurrent.futures
 import glob
+import torch
 import matplotlib.pyplot as plt
 from utils.ImageExtractor import ImageExtractor as IE
 from utils.JSONRetriever import JSONRetriever as JR
@@ -45,7 +46,11 @@ class DataManager(Dataset):
             images_path = target_path.replace("targets.npy","images.npy")
             np.save(images_path, self.images_names)
             self.build_dataset(target_path)        
-            
+        
+        for x,y in zip(self.images_names.copy(), self.target_names.copy()):
+            if x is None or y is None :
+                self.images_names.remove(x)
+                self.target_names.remove(y)
         # self.images_names = self.images_names[:len(self.target_names)]
 
     def __len__(self):
@@ -56,17 +61,16 @@ class DataManager(Dataset):
         try:
             image_file = self.images_names[idx].split('.')[0]
             target_file = self.target_names[idx]
-
             img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('RGB')
             target = Image.open(target_file).convert('RGB')
-
             img = self.transform(img)
             target = self.transform(target)
+
             return img, target
         except Exception as e:
-            print(e)
-            return None, None
-
+            print("[ERROR]", e)
+            random_tensor = torch.ones((3,self.shape[0], self.shape[1]))
+            return random_tensor, random_tensor
 
     def _get_best_file(self, image_file, target_file) -> str:
         """
