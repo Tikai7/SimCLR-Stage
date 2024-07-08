@@ -64,9 +64,9 @@ class JSONRetriever:
             data = json.load(open(path_filered_json + "/" + file, "r", encoding="utf-8"))
             for obj in data['metadata']:
                 if obj['label'] == "Relation":
-                    arks = re.findall("bpt.*", str(obj))
+                    arks = re.findall("12148\/b.*", str(obj)) # bpt
                     for ark in arks :
-                        liste_ark.append(ark.replace("'}", "").split('/')[0])
+                        liste_ark.append(ark.replace("'}", "").split('/')[1])
                         if file_id not in liste_triplet:
                             liste_triplet[file_id] = [ark.replace("'}", "")]
                         else:

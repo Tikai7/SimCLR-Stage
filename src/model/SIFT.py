@@ -26,7 +26,6 @@ class SIFTDetector:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             futures = {executor.submit(compute_match, i, des): i for i, des in enumerate(liste_descriptor)}
-            
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(liste_descriptor)):
                 try:
                     result = future.result()
