@@ -125,7 +125,7 @@ class Similarity:
         model.to(device)
         model.eval()
         model = torch.nn.Sequential(*(list(model.children())[:-1]))
-
+        print(model)
         preprocess = transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
@@ -141,6 +141,7 @@ class Similarity:
                 with torch.no_grad():
                     batch_t = batch_t.to(device)
                     features = model(batch_t)
+
                 return features.cpu().numpy().flatten()
             except:
                 return None
