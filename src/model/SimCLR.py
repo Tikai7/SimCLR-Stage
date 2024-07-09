@@ -1,21 +1,22 @@
 import torch.nn as nn
-from torchvision import models
+import torchvision.models as models
+
 
 class SimCLRBranch(nn.Module):
     def __init__(self, feature_size=512) -> None:
         super().__init__()
         assert feature_size <= 512, "[ERROR] Feature size has to be less than 512"
-        resnet = models.resnet50(pretrained=True, weights=models.ResNet50_Weights.DEFAULT)
+        resnet = models.resnet50(pretrained=True)
         self.feature_extractor = nn.Sequential(*(list(resnet.children())[:-1]))
         self.projection_head = nn.Sequential(
             nn.Linear(2048, 4*feature_size),
             nn.ReLU(),
-            nn.Linear(feature_size, feature_size)
+            nn.Linear(4*feature_size, feature_size)
         )
     
     def forward(self, X):
         H = self.feature_extractor(X)
-        Z = self.projection_head(H)
+        Z = self.projection_head(H.flatten(start_dim=1))
         return (H, Z)
 
 
