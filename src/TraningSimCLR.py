@@ -2,7 +2,7 @@ import torch
 from model.SimCLR import SimCLR
 from model.Train import Trainer
 from model.Losses import NTXentLoss
-from utils.DataLoaderDegradation import DataLoaderDegradation as DLD
+from utils.DataLoaderSimCLR import DataLoaderDegradation as DLD
 from torch.utils.data import DataLoader, random_split
 
 torch.cuda.empty_cache()
