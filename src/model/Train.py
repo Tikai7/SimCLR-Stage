@@ -82,7 +82,7 @@ class Trainer:
         pass
 
     def _train(self, train_data):
-        print("Training...")
+        # print("Training...")
         losses = []
         self.model.train()
         for batch_x, batch_y in train_data:  
@@ -96,7 +96,7 @@ class Trainer:
         return sum(losses)/len(train_data)
     
     def _validate(self, validation_data):
-        print("Validating...")
+        # print("Validating...")
         losses = []
         self.model.eval()
         with torch.no_grad():
@@ -109,7 +109,7 @@ class Trainer:
     
 
     def _trainCLR(self, train_data):
-        print("Training...")
+        # print("Training...")
         losses = []
         self.model.train()
         for batch_x, batch_y in train_data:
@@ -125,7 +125,7 @@ class Trainer:
         return sum(losses)/len(train_data)
 
     def _validateCLR(self, validation_data):
-        print("Validating...")
+        # print("Validating...")
         losses = []
         self.model.eval()
         with torch.no_grad():
@@ -139,6 +139,6 @@ class Trainer:
         return sum(losses)/len(validation_data)
     
     def _print_epoch(self, epoch, train_loss, val_loss, verbose):
-        if epoch % 10 and verbose or epoch < 10:
+        if epoch % 10 == 0 and verbose:
             print(f"Epoch : {epoch}, Train loss : {train_loss}, Validation loss : {val_loss}")
 

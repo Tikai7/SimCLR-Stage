@@ -11,7 +11,7 @@ from PIL import Image
 from model.SIFT import SIFTDetector
 import matplotlib.pyplot as plt
 
-
+SSH = os.getcwd() == 'c:\\Cours-Sorbonne\\M1\\Stage\\src'
 class DataLoaderDegradation(Dataset):
     def __init__(
             self, path_rol, path_sim_rol_nn_extracted, path_json_filtered, 
@@ -47,8 +47,10 @@ class DataLoaderDegradation(Dataset):
             if x is None or y is None :
                 self.images_names.remove(x)
                 self.target_names.remove(y)
-        # self.images_names = self.images_names[:len(self.target_names)]
 
+        if SSH:
+            self.target_names = [x.replace('C:/Cours-Sorbonne/M1/Stage/src/','../').replace('similaires_rol_extracted_nn_compressed','sim_rol_super_compressed') for x in self.target_names.copy()]
+            
     def __len__(self):
         return len(self.images_names)
     
