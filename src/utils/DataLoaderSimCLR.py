@@ -133,7 +133,9 @@ class DataLoaderSimCLR(Dataset):
             f = transforms.Compose([
                 transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
                 transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
                 transforms.RandomGrayscale(p=0.2),
+                transforms.RandomRotation(degrees=15),
                 transforms.GaussianBlur(kernel_size=int(0.1 * self.shape[0]), sigma=(0.1, 2.0)),
                 transforms.ToTensor(), 
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
