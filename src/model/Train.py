@@ -49,12 +49,12 @@ class Trainer:
         assert os.path.exists(model_path), "[ERROR] path does not exist"
         return torch.load(model_path)
     
-    def fit(self, train_data, validation_data=None, learning_rate=1e-4, epochs=1, verbose=True, sim_clr=False):
+    def fit(self, train_data, validation_data=None, learning_rate=1e-4, epochs=1, verbose=True, sim_clr=False, weight_decay=1e-6):
         assert self.model is not None, "[ERROR] set or load the model first throught .set_model() or .load_model()"
         assert self.optimizer is not None, "[ERROR] set the optimizer first throught .set_optimizer()"
         assert self.loss_fn is not None, "[ERROR] set the loss function first throught .set_loss()"
 
-        self.optimizer = self.optimizer(self.model.parameters(), lr=learning_rate)
+        self.optimizer = self.optimizer(self.model.parameters(), lr=learning_rate, weight_decay=1e-6)
 
         self.history["params"]["lr"] = learning_rate
         self.history["params"]["epochs"] = epochs

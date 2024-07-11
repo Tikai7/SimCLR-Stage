@@ -7,12 +7,14 @@ class SimCLRBranch(nn.Module):
         super().__init__()
         assert feature_size <= 128, "[ERROR] Feature size has to be less than 128"
         resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-        self.feature_extractor = nn.Sequential(*(list(resnet.children())[:-1]))
+        resnet.fc = nn.Identity()
+        self.feature_extractor = resnet
         self.projection_head = nn.Sequential(
             nn.Linear(2048, 4 * feature_size),
             nn.ReLU(),
             nn.Linear(4 * feature_size, feature_size)
         )
+        print(self.feature_extractor)
     
     def forward(self, X):
         H = self.feature_extractor(X)
