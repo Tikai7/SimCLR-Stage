@@ -11,15 +11,16 @@ from PIL import Image
 from model.SIFT import SIFTDetector
 import matplotlib.pyplot as plt
 
+SSH = os.getcwd() != 'c:\\Cours-Sorbonne\\M1\\Stage\\src'
 
 class DataLoaderSimCLR(Dataset):
     def __init__(
             self, path_rol, path_sim_rol_nn_extracted, path_json_filtered, 
-            shape=(256,256), target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", sim_clr=False, use_base_image=False
+            shape=(256,256), target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
+            sim_clr=False, use_only_rol=False, build_if_error = False, max_images=None
     ) -> None:
 
-        self.s = 0.5
-        self.use_base_image = use_base_image
+        self.use_only_rol = use_only_rol
         self.sim_clr = sim_clr
         self.path_filtered = path_json_filtered
         self.path_rol = path_rol
@@ -27,8 +28,15 @@ class DataLoaderSimCLR(Dataset):
         self.shape = shape
 
         try:
-            self.images_names = np.load(target_path.replace("targets.npy","images.npy"), allow_pickle=True).tolist()
-            self.target_names = np.load(target_path, allow_pickle=True).tolist()
+            if self.use_only_rol  : 
+                self.test_images = np.load(target_path.replace("targets.npy","images.npy"), allow_pickle=True).tolist()
+                self.images_names = os.listdir(path_rol)[:max_images] if max_images is not None else os.listdir(path_rol)
+                self.images_names = [x for x in self.images_names if "jpg" in x]
+                self.images_names = [x for x in self.images_names if x.split('.')[0] not in self.test_images]
+                print(f"[INFO] Using ROL Dataset with {len(self.images_names)} images")
+            else:
+                self.images_names = np.load(target_path.replace("targets.npy","images.npy"), allow_pickle=True).tolist()
+                self.target_names = np.load(target_path, allow_pickle=True).tolist()
             print("[INFO] Loaded exsisting targets")
         except:
             print("[ERROR] Failed loading targets")
@@ -43,15 +51,19 @@ class DataLoaderSimCLR(Dataset):
                     self.target_names.remove(y)
             
             images_path = target_path.replace("targets.npy","images.npy")
-            np.save(images_path, self.images_names)
-            self.build_dataset(target_path)        
+            if build_if_error : 
+                np.save(images_path, self.images_names)
+                self.build_dataset(target_path)        
+            else:
+                raise ImportError("Can import the dataset, please set build_if_error at 'True'")
         
-        for x,y in zip(self.images_names.copy(), self.target_names.copy()):
-            if x is None or y is None :
-                self.images_names.remove(x)
-                self.target_names.remove(y)
-
-        self.target_names = [x.replace('C:/Cours-Sorbonne/M1/Stage/src/','../').replace('similaires_rol_extracted_nn_compressed','sim_rol_super_compressed') for x in self.target_names.copy()]
+        if not use_only_rol:
+            for x,y in zip(self.images_names.copy(), self.target_names.copy()):
+                if x is None or y is None :
+                    self.images_names.remove(x)
+                    self.target_names.remove(y)
+            if SSH:
+                self.target_names = [x.replace('C:/Cours-Sorbonne/M1/Stage/src/','../').replace('similaires_rol_extracted_nn_compressed','sim_rol_super_compressed') for x in self.target_names.copy()]
 
 
     def __len__(self):
@@ -61,14 +73,14 @@ class DataLoaderSimCLR(Dataset):
         
         try:
             image_file = self.images_names[idx].split('.')[0]
-            target_file = self.target_names[idx]
             img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('RGB')
-            target = Image.open(target_file.replace("\\","/")).convert('RGB')
-            target = None
 
-            if self.use_base_image:
+            target = None
+            if self.use_only_rol:
                 target = self.transform(img, sim_clr=self.sim_clr)
             else:
+                target_file = self.target_names[idx]
+                target = Image.open(target_file.replace("\\","/")).convert('RGB')
                 target = self.transform(target, sim_clr=self.sim_clr)
 
             img = self.transform(img)
@@ -114,32 +126,17 @@ class DataLoaderSimCLR(Dataset):
         f = transforms.Compose([
             transforms.Resize(self.shape),
             transforms.ToTensor(),
-            transforms.Normalize(     
-                mean=[0.4914, 0.4822, 0.4465],
-                std=[0.2023, 0.1994, 0.2010]
-            )
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
 
         if sim_clr:
             f = transforms.Compose([
-                transforms.Resize(self.shape),
-                transforms.ToTensor(),
-                transforms.RandomHorizontalFlip(0.5),
-                transforms.RandomResizedCrop(self.shape[0],(0.8,1.0)),
-                transforms.Compose([
-                    transforms.RandomApply([
-                    transforms.ColorJitter(
-                        0.8*self.s, 
-                        0.8*self.s, 
-                        0.8*self.s, 
-                        0.2*self.s
-                    )], p = 0.8),
-                    transforms.RandomGrayscale(p=0.2)
-                ]),
-                transforms.Normalize(     
-                    mean=[0.4914, 0.4822, 0.4465],
-                    std=[0.2023, 0.1994, 0.2010]
-                ),
+                transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomGrayscale(p=0.2),
+                transforms.GaussianBlur(kernel_size=int(0.1 * self.shape[0]), sigma=(0.1, 2.0)),
+                transforms.ToTensor(), 
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
             ])
 
         return f(image)
@@ -159,21 +156,24 @@ class DataLoaderSimCLR(Dataset):
 
 
     @staticmethod
-    def show_data(loader):
+    def show_data(loader, nb_images=1):
         """
             Function that show data from a given loader
             @param loader
         """
-        x, y = next(iter(loader))
 
-        x = x.permute(0,2,3,1)
-        y = y.permute(0,2,3,1)
+        for i, (x, y) in enumerate(loader):
+            if i == nb_images:
+                break
+            
+            x = x.permute(0,2,3,1)
+            y = y.permute(0,2,3,1)
 
-        plt.figure(figsize=(12,7))
-        plt.subplot(121)
-        plt.imshow(x[0])
-        plt.title("Image")
-        plt.subplot(122)
-        plt.imshow(y[0])
-        plt.title("Target")
-        plt.show()
+            plt.figure(figsize=(12,7))
+            plt.subplot(121)
+            plt.imshow(x[0])
+            plt.title("Image")
+            plt.subplot(122)
+            plt.imshow(y[0])
+            plt.title("Target")
+            plt.show()

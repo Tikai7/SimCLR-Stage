@@ -22,4 +22,5 @@ class NTXentLoss(nn.Module):
 
         y_loss = -torch.log((y_sim_pos_couples / y_sim_neg_couples).mean())
 
+
         return y_loss
