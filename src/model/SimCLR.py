@@ -14,9 +14,8 @@ class SimCLRBranch(nn.Module):
         resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
         resnet.fc = nn.Identity()
         self.feature_extractor = resnet
-        self.combined_fc = nn.Sequential([
-            nn.Linear(self.RESNET_FEATURES_SIZE , self.BERT_FEATURES_SIZE)
-        ])
+        self.combined_fc = nn.Linear(self.RESNET_FEATURES_SIZE , self.BERT_FEATURES_SIZE)
+    
         self.projection_head = nn.Sequential(
             nn.Linear(self.BERT_FEATURES_SIZE , 4 * feature_size),
             nn.ReLU(),
@@ -24,9 +23,9 @@ class SimCLRBranch(nn.Module):
         )
     
     def forward(self, X, C=None):
-        if C is None:
-            C = torch.zeros(self.BERT_FEATURES_SIZE)
-
+        if C is  None:
+            C = torch.zeros(X.shape[0], self.BERT_FEATURES_SIZE).to(X.device)
+        
         H = self.feature_extractor(X)
         H = self.combined_fc(H) + C
         Z = self.projection_head(H.flatten(start_dim=1))

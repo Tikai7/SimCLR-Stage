@@ -117,13 +117,13 @@ class Trainer:
             if use_context:
                 batch_x, batch_y, context_x, context_y = data
                 batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
-                context_x, context_y = batch_x.to(self.device), batch_y.to(self.device)
+                context_x, context_y = context_x.to(self.device), context_y.to(self.device)
                 output = self.model(batch_x, batch_y, context_x, context_y)
             else:
                 batch_x, batch_y = data
                 batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
                 output = self.model(batch_x, batch_y)
-            output = self.model(batch_x, batch_y)
+
             Z1, Z2 = output["projection_head"]
             loss = self.loss_fn(Z1,Z2)
             losses.append(loss.item())
@@ -143,7 +143,7 @@ class Trainer:
                 if use_context:
                     batch_x, batch_y, context_x, context_y = data
                     batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
-                    context_x, context_y = batch_x.to(self.device), batch_y.to(self.device)
+                    context_x, context_y = context_x.to(self.device), context_y.to(self.device)
                     output = self.model(batch_x, batch_y, context_x, context_y)
                 else:
                     batch_x, batch_y = data

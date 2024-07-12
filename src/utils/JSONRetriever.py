@@ -30,7 +30,7 @@ class JSONRetriever:
             if obj['label'] == "Title" or obj['label'] == "Date":
                 text += f"{obj['value']} "
                 
-        encoded_text = model(text)
+        encoded_text = model(text).squeeze(0)
         return encoded_text
 
     @staticmethod
