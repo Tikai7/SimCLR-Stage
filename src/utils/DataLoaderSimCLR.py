@@ -6,6 +6,7 @@ import glob
 import torch
 from utils.JSONRetriever import JSONRetriever as JR
 from torch.utils.data import Dataset
+from utils.Processing import Processing as PC 
 from torchvision import transforms
 from PIL import Image
 from model.SIFT import SIFTDetector
@@ -126,6 +127,7 @@ class DataLoaderSimCLR(Dataset):
         if sim_clr:
             f = transforms.Compose([
                 transforms.Resize(self.shape),  
+                transforms.RandomApply([transforms.Lambda(lambda x : PC.to_halftone(x))], p=0.5),
                 transforms.ToTensor(),  
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
                 transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),

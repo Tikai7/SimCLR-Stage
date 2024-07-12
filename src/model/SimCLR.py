@@ -14,7 +14,6 @@ class SimCLRBranch(nn.Module):
             nn.ReLU(),
             nn.Linear(4 * feature_size, feature_size)
         )
-        print(self.feature_extractor)
     
     def forward(self, X):
         H = self.feature_extractor(X)
