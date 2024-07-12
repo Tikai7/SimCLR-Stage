@@ -10,6 +10,8 @@ from utils.Processing import Processing as PC
 from torchvision import transforms
 from PIL import Image
 from model.SIFT import SIFTDetector
+from model.BERT import BertEncoder
+
 import matplotlib.pyplot as plt
 
 SSH = os.getcwd() != 'c:\\Cours-Sorbonne\\M1\\Stage\\src'
@@ -18,15 +20,17 @@ class DataLoaderSimCLR(Dataset):
     def __init__(
             self, path_rol, path_sim_rol_nn_extracted, path_json_filtered, 
             shape=(256,256), target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
-            sim_clr=False, use_only_rol=False, build_if_error = False, max_images=None
+            sim_clr=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False
     ) -> None:
 
+        self.use_context = use_context
         self.use_only_rol = use_only_rol
         self.sim_clr = sim_clr
         self.path_filtered = path_json_filtered
         self.path_rol = path_rol
         self.path_sim_rol_nn_extracted = path_sim_rol_nn_extracted
         self.shape = shape
+        self.model = BertEncoder()
 
         try:
             if self.use_only_rol  : 
@@ -66,7 +70,6 @@ class DataLoaderSimCLR(Dataset):
             if SSH:
                 self.target_names = [x.replace('C:/Cours-Sorbonne/M1/Stage/src/','../').replace('similaires_rol_extracted_nn_compressed','sim_rol_super_compressed') for x in self.target_names.copy()]
 
-
     def __len__(self):
         return len(self.images_names)
     
@@ -77,6 +80,8 @@ class DataLoaderSimCLR(Dataset):
             img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('RGB')
 
             target = None
+            target_file = None
+            
             if self.use_only_rol:
                 target = self.transform(img, sim_clr=self.sim_clr)
             else:
@@ -86,7 +91,14 @@ class DataLoaderSimCLR(Dataset):
 
             img = self.transform(img)
 
-            return img, target
+            if self.use_only_rol:
+                return img, target
+        
+            img_context = JR.get_encoded_context(self.model, image_file, self.path_rol)
+            target_context = JR.get_encoded_context(self.model, target_file, self.path_sim_rol_nn_extracted, target=True)
+
+            return img, target, img_context, target_context
+
         except Exception as e:
             print("[ERROR-GETITEM]", e)
             random_tensor = torch.ones((3,self.shape[0], self.shape[1]))
@@ -127,7 +139,7 @@ class DataLoaderSimCLR(Dataset):
         if sim_clr:
             f = transforms.Compose([
                 transforms.Resize(self.shape),  
-                transforms.RandomApply([transforms.Lambda(lambda x : PC.to_halftone(x))], p=0.5),
+                # transforms.RandomApply([transforms.Lambda(lambda x : PC.to_halftone(x))], p=0.5),
                 transforms.ToTensor(),  
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
                 transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
@@ -160,13 +172,18 @@ class DataLoaderSimCLR(Dataset):
 
 
     @staticmethod
-    def show_data(loader, nb_images=1):
+    def show_data(loader, nb_images=1, use_context=False):
         """
             Function that show data from a given loader
             @param loader
         """
 
-        for i, (x, y) in enumerate(loader):
+        for i, data in enumerate(loader):
+            if use_context:
+                x,y,_,_ = data
+            else:
+                x,y = data
+
             if i == nb_images:
                 break
             

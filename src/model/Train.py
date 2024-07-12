@@ -49,12 +49,12 @@ class Trainer:
         assert os.path.exists(model_path), "[ERROR] path does not exist"
         return torch.load(model_path)
     
-    def fit(self, train_data, validation_data=None, learning_rate=1e-4, epochs=1, verbose=True, sim_clr=False, weight_decay=1e-6):
+    def fit(self, train_data, validation_data=None, learning_rate=1e-4, epochs=1, verbose=True, sim_clr=False, use_context=False, weight_decay=1e-6):
         assert self.model is not None, "[ERROR] set or load the model first throught .set_model() or .load_model()"
         assert self.optimizer is not None, "[ERROR] set the optimizer first throught .set_optimizer()"
         assert self.loss_fn is not None, "[ERROR] set the loss function first throught .set_loss()"
 
-        self.optimizer = self.optimizer(self.model.parameters(), lr=learning_rate, weight_decay=1e-6)
+        self.optimizer = self.optimizer(self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
         self.history["params"]["lr"] = learning_rate
         self.history["params"]["epochs"] = epochs
@@ -63,8 +63,8 @@ class Trainer:
         for epoch in tqdm(range(epochs)):
             train_loss, val_loss = None, None
             if sim_clr :
-                train_loss = self._trainCLR(train_data)
-                val_loss = self._validateCLR(validation_data)
+                train_loss = self._trainCLR(train_data, use_context)
+                val_loss = self._validateCLR(validation_data, use_context)
             else:
                 train_loss = self._train(train_data)
                 val_loss = self._validate(validation_data)
@@ -108,12 +108,21 @@ class Trainer:
         return sum(losses)/len(validation_data)
     
 
-    def _trainCLR(self, train_data):
+    def _trainCLR(self, train_data, use_context=False):
         # print("Training...")
         losses = []
         self.model.train()
-        for batch_x, batch_y in train_data:
-            batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
+        for data in train_data:
+            output = None
+            if use_context:
+                batch_x, batch_y, context_x, context_y = data
+                batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
+                context_x, context_y = batch_x.to(self.device), batch_y.to(self.device)
+                output = self.model(batch_x, batch_y, context_x, context_y)
+            else:
+                batch_x, batch_y = data
+                batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
+                output = self.model(batch_x, batch_y)
             output = self.model(batch_x, batch_y)
             Z1, Z2 = output["projection_head"]
             loss = self.loss_fn(Z1,Z2)
@@ -124,14 +133,23 @@ class Trainer:
 
         return sum(losses)/len(train_data)
 
-    def _validateCLR(self, validation_data):
+    def _validateCLR(self, validation_data, use_context=False):
         # print("Validating...")
         losses = []
         self.model.eval()
         with torch.no_grad():
-            for batch_x, batch_y in validation_data:
-                batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
-                output = self.model(batch_x, batch_y)
+            for data in validation_data:
+                output = None
+                if use_context:
+                    batch_x, batch_y, context_x, context_y = data
+                    batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
+                    context_x, context_y = batch_x.to(self.device), batch_y.to(self.device)
+                    output = self.model(batch_x, batch_y, context_x, context_y)
+                else:
+                    batch_x, batch_y = data
+                    batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
+                    output = self.model(batch_x, batch_y)
+                
                 Z1, Z2 = output["projection_head"]
                 loss = self.loss_fn(Z1,Z2)
                 losses.append(loss.item())
@@ -139,6 +157,6 @@ class Trainer:
         return sum(losses)/len(validation_data)
     
     def _print_epoch(self, epoch, train_loss, val_loss, verbose):
-        if epoch % 10 == 0 and verbose:
+        if epoch % 5 == 0 and verbose or epoch <1:
             print(f"Epoch : {epoch}, Train loss : {train_loss}, Validation loss : {val_loss}")
 
