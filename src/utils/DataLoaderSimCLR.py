@@ -70,6 +70,7 @@ class DataLoaderSimCLR(Dataset):
             if SSH:
                 self.target_names = [x.replace('C:/Cours-Sorbonne/M1/Stage/src/','../').replace('similaires_rol_extracted_nn_compressed','sim_rol_super_compressed') for x in self.target_names.copy()]
 
+
     def __len__(self):
         return len(self.images_names)
     
@@ -77,32 +78,35 @@ class DataLoaderSimCLR(Dataset):
         
         try:
             image_file = self.images_names[idx].split('.')[0]
-            img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('RGB')
+            target_file = self.target_names[idx]
 
+            img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('RGB')
             target = None
-            target_file = None
-            
+
             if self.use_only_rol:
                 target = self.transform(img, sim_clr=self.sim_clr)
             else:
-                target_file = self.target_names[idx]
                 target = Image.open(target_file.replace("\\","/")).convert('RGB')
                 target = self.transform(target, sim_clr=self.sim_clr)
 
             img = self.transform(img)
 
-            if self.use_only_rol:
+            if self.use_only_rol and not self.use_context:
                 return img, target
-        
+    
+
             img_context = JR.get_encoded_context(self.model, image_file, self.path_rol)
             target_context = JR.get_encoded_context(self.model, target_file, self.path_sim_rol_nn_extracted, target=True)
 
-            return img, target, img_context, target_context
+            if target_context is None or img_context is None:
+                target_context = img_context = torch.zeros(768)
 
+            return img, target, img_context, target_context
+        
         except Exception as e:
             print("[ERROR-GETITEM]", e)
             random_tensor = torch.ones((3,self.shape[0], self.shape[1]))
-            return random_tensor, random_tensor
+            return random_tensor,random_tensor
 
     def _get_best_file(self, image_file, target_file) -> str:
         """
@@ -180,13 +184,13 @@ class DataLoaderSimCLR(Dataset):
 
         for i, data in enumerate(loader):
             if use_context:
-                x,y,_,_ = data
+                x, y,_,_ = data
             else:
                 x,y = data
 
             if i == nb_images:
                 break
-            
+        
             x = x.permute(0,2,3,1)
             y = y.permute(0,2,3,1)
 

@@ -37,7 +37,7 @@ class JSONRetriever:
             encoded_text = model(text).squeeze(0)
             return encoded_text
         except:
-            return torch.zeros(768)
+            return None
 
     @staticmethod
     def get_json_from_images(path, dest_path):
