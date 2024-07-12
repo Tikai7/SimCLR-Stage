@@ -2,11 +2,10 @@ import os
 import cv2
 import numpy as np
 
-
 import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
-
+import torch.nn.functional as F
 
 from model.SIFT import SIFTDetector
 from tqdm import tqdm
@@ -202,6 +201,50 @@ class Similarity:
                     break
         return matches, features_big, features_small
     
+    
     @staticmethod
     def get_distance_between_images(image1, image2):
         return np.linalg.norm(image1 - image2)
+
+
+    @staticmethod
+    def find_most_similar(sim_matrix):
+        most_similar_pairs = []
+        for i in range(sim_matrix.size(0)):
+            sim_scores = sim_matrix[i]
+            sim_scores[i] = -float('inf')  # Exclude self-similarity
+            most_similar_idx = torch.argmax(sim_scores).item()
+            most_similar_pairs.append((i, most_similar_idx))
+        return most_similar_pairs
+
+
+    @staticmethod
+    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None):
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"[INFO] Matching on {device}")
+        model.to(device)
+        model.eval()
+        if test_loader is not None:
+            with torch.no_grad():
+                all_heads = []
+                for batch_x, batch_y in tqdm(test_loader):
+                    batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                    output = model(batch_x, batch_y)
+                    Z1, Z2 = output['projection_head']
+                    all_heads.append(Z1.cpu())
+                    all_heads.append(Z2.cpu())
+                        
+            all_heads = torch.cat(all_heads)
+            sim_matrix = F.cosine_similarity(all_heads.unsqueeze(1), all_heads.unsqueeze(0), dim=2)
+            most_similar_pairs = Similarity.find_most_similar(sim_matrix)
+
+            return sim_matrix, most_similar_pairs
+
+        elif path is not None and path_to_match is not None:
+            pass
+        else:
+            print("[ERROR] You have to either specify a test_loader or path and path_to_match args")
+
+
+
+        

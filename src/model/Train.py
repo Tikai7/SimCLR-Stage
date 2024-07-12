@@ -71,7 +71,7 @@ class Trainer:
 
             self._print_epoch(epoch, train_loss, val_loss, verbose)
 
-            self.history['train']['loss'].append(val_loss)
+            self.history['train']['loss'].append(train_loss)
             self.history['validation']['loss'].append(val_loss)
 
             
