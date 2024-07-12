@@ -3,6 +3,9 @@ import os
 import requests
 from tqdm import tqdm
 import json
+import torch
+
+
 class JSONRetriever:
     """
     Class to retrieve images from JSON files.
@@ -17,21 +20,24 @@ class JSONRetriever:
             - title
             - date
         """
-        json_path = None
-        if target:
-            ark = re.findall('bpt.*', path)[0].split('_')[0]
-            json_path = path_json+f'/json/{ark}.json'
-        else:
-            json_path = path_json+f'/json_filtered/{path}.json'
+        try:
+            json_path = None
+            if target:
+                ark = re.findall('bpt.*', path)[0].split('_')[0]
+                json_path = path_json+f'/json/{ark}.json'
+            else:
+                json_path = path_json+f'/json_filtered/{path}.json'
 
-        data = json.load(open(json_path,"r",encoding="utf-8"))
-        text = ""
-        for obj in data['metadata']:
-            if obj['label'] == "Title" or obj['label'] == "Date":
-                text += f"{obj['value']} "
-                
-        encoded_text = model(text).squeeze(0)
-        return encoded_text
+            data = json.load(open(json_path,"r",encoding="utf-8"))
+            text = ""
+            for obj in data['metadata']:
+                if obj['label'] == "Title" or obj['label'] == "Date":
+                    text += f"{obj['value']} "
+                    
+            encoded_text = model(text).squeeze(0)
+            return encoded_text
+        except:
+            return torch.zeros(768)
 
     @staticmethod
     def get_json_from_images(path, dest_path):
