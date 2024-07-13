@@ -11,7 +11,7 @@ class JSONRetriever:
     Class to retrieve images from JSON files.
     """
     @staticmethod
-    def get_encoded_context(model, path, path_json, target=False):
+    def get_encoded_context(model, path, path_json, target=False, folder_root="json_filtered"):
         """
         Get context from the images within the JSON files
         @param path : path of the image
@@ -26,8 +26,7 @@ class JSONRetriever:
                 ark = re.findall('bpt.*', path)[0].split('_')[0]
                 json_path = path_json+f'/json/{ark}.json'
             else:
-                json_path = path_json+f'/json_filtered/{path}.json'
-
+                json_path = path_json+f'/{folder_root}/{path}.json'
             data = json.load(open(json_path,"r",encoding="utf-8"))
             text = ""
             for obj in data['metadata']:
@@ -36,7 +35,8 @@ class JSONRetriever:
                     
             encoded_text = model(text).squeeze(0)
             return encoded_text
-        except:
+        except Exception as e:
+            print(e)
             return None
 
     @staticmethod

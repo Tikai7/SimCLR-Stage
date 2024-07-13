@@ -78,30 +78,40 @@ class DataLoaderSimCLR(Dataset):
         
         try:
             image_file = self.images_names[idx].split('.')[0]
-            target_file = self.target_names[idx]
 
             img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('RGB')
             target = None
-
+            target_file = None
             if self.use_only_rol:
                 target = self.transform(img, sim_clr=self.sim_clr)
             else:
+                target_file = self.target_names[idx]
                 target = Image.open(target_file.replace("\\","/")).convert('RGB')
                 target = self.transform(target, sim_clr=self.sim_clr)
 
             img = self.transform(img)
 
-            if self.use_only_rol and not self.use_context:
-                return img, target
-    
+            if self.use_context:
+                
+                img_context, target_context = None,None
 
-            img_context = JR.get_encoded_context(self.model, image_file, self.path_rol)
-            target_context = JR.get_encoded_context(self.model, target_file, self.path_sim_rol_nn_extracted, target=True)
+                if not self.use_only_rol:
+                    img_context = JR.get_encoded_context(self.model, image_file, self.path_rol)
+                    target_context = JR.get_encoded_context(self.model, target_file, self.path_sim_rol_nn_extracted, target=True)
+                else:
+                    img_context = JR.get_encoded_context(self.model, image_file, self.path_rol, folder_root="json")
+                    target_context = img_context.clone()
 
-            if target_context is None or img_context is None:
-                target_context = img_context = torch.zeros(768)
 
-            return img, target, img_context, target_context
+                if target_context is None or img_context is None:
+                    print("[WARNING] No context provided")
+                    target_context = img_context = torch.zeros(768)
+
+
+                return img, target, img_context, target_context
+            
+            return img, target
+
         
         except Exception as e:
             print("[ERROR-GETITEM]", e)
