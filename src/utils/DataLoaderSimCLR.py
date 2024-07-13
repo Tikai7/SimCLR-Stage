@@ -100,7 +100,10 @@ class DataLoaderSimCLR(Dataset):
                     target_context = JR.get_encoded_context(self.model, target_file, self.path_sim_rol_nn_extracted, target=True)
                 else:
                     img_context = JR.get_encoded_context(self.model, image_file, self.path_rol, folder_root="json")
-                    target_context = img_context.clone()
+                    if img_context is not None:
+                        target_context = img_context.clone()
+                    else:
+                        target_context = None
 
 
                 if target_context is None or img_context is None:

@@ -36,7 +36,6 @@ class JSONRetriever:
             encoded_text = model(text).squeeze(0)
             return encoded_text
         except Exception as e:
-            print(e)
             return None
 
     @staticmethod
