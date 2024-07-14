@@ -157,6 +157,6 @@ class Trainer:
         return sum(losses)/len(validation_data)
     
     def _print_epoch(self, epoch, train_loss, val_loss, verbose):
-        if epoch % 5 == 0 and verbose or epoch <1:
+        if verbose :
             print(f"Epoch : {epoch}, Train loss : {train_loss}, Validation loss : {val_loss}")
 

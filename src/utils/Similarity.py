@@ -210,40 +210,59 @@ class Similarity:
     @staticmethod
     def find_most_similar(sim_matrix):
         most_similar_pairs = []
-        for i in range(sim_matrix.size(0)):
-            sim_scores = sim_matrix[i]
-            sim_scores[i] = -float('inf')  # Exclude self-similarity
-            most_similar_idx = torch.argmax(sim_scores).item()
+        num_originals = sim_matrix.size(0) // 2
+        for i in range(num_originals):
+            sim_scores = sim_matrix[i, num_originals:] 
+            most_similar_idx = torch.argmax(sim_scores).item() + num_originals
             most_similar_pairs.append((i, most_similar_idx))
         return most_similar_pairs
 
-
     @staticmethod
-    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None):
+    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None, use_context=False):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[INFO] Matching on {device}")
         model.to(device)
         model.eval()
+
         if test_loader is not None:
             with torch.no_grad():
-                all_heads = []
-                for batch_x, batch_y in tqdm(test_loader):
-                    batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-                    output = model(batch_x, batch_y)
-                    Z1, Z2 = output['projection_head']
-                    all_heads.append(Z1.cpu())
-                    all_heads.append(Z2.cpu())
-                        
-            all_heads = torch.cat(all_heads)
-            sim_matrix = F.cosine_similarity(all_heads.unsqueeze(1), all_heads.unsqueeze(0), dim=2)
-            most_similar_pairs = Similarity.find_most_similar(sim_matrix)
+                original_features, augmented_features = [], []
+                original_images, augmented_images = [], []
+                for data in tqdm(test_loader):
+                    output = None
+                    if use_context:
+                        batch_x, batch_y, context_x, context_y = data
+                        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                        context_x, context_y = context_x.to(device), context_y.to(device)
+                        output = model(batch_x, batch_y, context_x, context_y)
+                    else:
+                        batch_x, batch_y = data
+                        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                        output = model(batch_x, batch_y)
 
-            return sim_matrix, most_similar_pairs
+                    Z1, Z2 = output['projection_head']
+
+                    original_features.append(Z1.cpu())
+                    augmented_features.append(Z2.cpu())
+                    original_images.append(batch_x.cpu())
+                    augmented_images.append(batch_y.cpu())
+                        
+            original_features = torch.cat(original_features, dim=0)
+            augmented_features = torch.cat(augmented_features, dim=0)
+            original_images = torch.cat(original_images, dim=0)
+            augmented_images = torch.cat(augmented_images, dim=0)
+
+            sim_matrix = F.cosine_similarity(original_features.unsqueeze(1), augmented_features.unsqueeze(0), dim=-1)
+            most_similar_indices = torch.argmax(sim_matrix, dim=1)
+
+            return most_similar_indices, original_images, augmented_images
+        
 
         elif path is not None and path_to_match is not None:
             pass
         else:
             print("[ERROR] You have to either specify a test_loader or path and path_to_match args")
+
 
 
 

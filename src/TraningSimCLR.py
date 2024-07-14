@@ -22,7 +22,7 @@ temperature = 0.5
 dataset = DSC(
     path_rol_comp, path_sim_rol_extracted_comp, path_filtered, 
     shape=(image_size, image_size), target_path=path_targets, 
-    sim_clr=True, use_only_rol=True
+    augment_test=True, use_only_rol=True
 )
 train_size = int(train_ratio * len(dataset))
 val_size = len(dataset) - train_size

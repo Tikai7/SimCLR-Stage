@@ -20,12 +20,12 @@ class DataLoaderSimCLR(Dataset):
     def __init__(
             self, path_rol, path_sim_rol_nn_extracted, path_json_filtered, 
             shape=(256,256), target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
-            sim_clr=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False
+            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False
     ) -> None:
 
         self.use_context = use_context
         self.use_only_rol = use_only_rol
-        self.sim_clr = sim_clr
+        self.augment_test = augment_test
         self.path_filtered = path_json_filtered
         self.path_rol = path_rol
         self.path_sim_rol_nn_extracted = path_sim_rol_nn_extracted
@@ -83,11 +83,14 @@ class DataLoaderSimCLR(Dataset):
             target = None
             target_file = None
             if self.use_only_rol:
-                target = self.transform(img, sim_clr=self.sim_clr)
+                target = self.transform(img, augment=True)
             else:
                 target_file = self.target_names[idx]
                 target = Image.open(target_file.replace("\\","/")).convert('RGB')
-                target = self.transform(target, sim_clr=self.sim_clr)
+                if self.augment_test:
+                    target = self.transform(img, augment=True)
+                else:
+                    target = self.transform(target, augment=False)
 
             img = self.transform(img)
 
@@ -147,13 +150,13 @@ class DataLoaderSimCLR(Dataset):
 
 
 
-    def transform(self, image, sim_clr=False):
+    def transform(self, image, augment=False):
         """
             Function that apply transformation on an given Image
             @param Image
             @return Augmented Image
         """
-        if sim_clr:
+        if augment:
             f = transforms.Compose([
                 transforms.Resize(self.shape),  
                 # transforms.RandomApply([transforms.Lambda(lambda x : PC.to_halftone(x))], p=0.5),
@@ -163,7 +166,7 @@ class DataLoaderSimCLR(Dataset):
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
                 transforms.RandomGrayscale(p=0.2),
-                transforms.RandomRotation(degrees=15),
+                # transforms.RandomRotation(degrees=15),
                 transforms.GaussianBlur(kernel_size=int(0.1 * self.shape[0]), sigma=(0.1, 2.0))
             ])
         else:
