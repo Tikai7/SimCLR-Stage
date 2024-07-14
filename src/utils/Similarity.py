@@ -257,7 +257,7 @@ class Similarity:
             true_indices = torch.arange(len(most_similar_indices))
             accuracy = (most_similar_indices == true_indices).sum().item() / len(true_indices)
 
-            print(f"Accuracy : {accuracy}")
+            print(f"[INFO] Accuracy : {accuracy}")
             return most_similar_indices, original_images, augmented_images
         
 
