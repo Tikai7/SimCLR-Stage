@@ -254,7 +254,10 @@ class Similarity:
 
             sim_matrix = F.cosine_similarity(original_features.unsqueeze(1), augmented_features.unsqueeze(0), dim=-1)
             most_similar_indices = torch.argmax(sim_matrix, dim=1)
+            true_indices = torch.arange(len(most_similar_indices))
+            accuracy = (most_similar_indices == true_indices).sum().item() / len(true_indices)
 
+            print(f"Accuracy : {accuracy}")
             return most_similar_indices, original_images, augmented_images
         
 
