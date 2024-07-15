@@ -18,12 +18,15 @@ path_rol_comp = "../data/rol_super_compressed"
 path_sim_rol_extracted_comp = "../data/sim_rol_super_compressed" 
 path_filtered = "../data/rol_super_compressed/json_filtered"
 path_targets = "../data/rol_sim_rol_couples/targets.npy"
+bad_pairs_path = "./files/bad_pairs.txt"
+to_enhance_path = "./files/to_enhance_pairs.txt"
 
 
 dataset = DSC(
     path_rol_comp, path_sim_rol_extracted_comp, path_filtered, 
+    bad_pairs_path=bad_pairs_path, to_enhance_path=to_enhance_path,
     shape=(image_size, image_size), target_path=path_targets, 
-    augment_test=False, use_only_rol=False, use_context=False
+    augment_test=False, use_only_rol=False, use_context=False, remove_to_enhance_files=True, remove_bad_pairs=True
 )
 
 train_size = int(train_ratio * len(dataset))

@@ -1,4 +1,3 @@
-
 import torch
 from model.SimCLR import SimCLR
 from model.Train import Trainer
@@ -6,24 +5,27 @@ from model.Losses import NTXentLoss
 from utils.DataLoaderSimCLR import DataLoaderSimCLR as DSC
 from torch.utils.data import DataLoader, random_split
 
+torch.cuda.empty_cache()
+
 path_rol_comp = "../data/rol_super_compressed" 
 path_sim_rol_extracted_comp = "../data/sim_rol_super_compressed" 
 path_filtered = "../data/rol_super_compressed/json_filtered"
 path_targets = "../data/rol_sim_rol_couples/targets.npy"
 
-epochs = 200
+
+epochs = 30
 image_size = 256
-batch_size = 64
-learning_rate = 1e-3
+batch_size = 32
+learning_rate = 1e-2
 train_ratio = 0.8
 val_ratio = 0.2
 temperature = 0.5
 
 dataset = DSC(
-    path_rol_comp, path_sim_rol_extracted_comp, path_filtered, 
-    shape=(image_size, image_size), target_path=path_targets, 
-    augment_test=True, use_only_rol=True
+    path_rol_comp, path_sim_rol_extracted_comp, path_filtered,
+    shape=(image_size, image_size), target_path=path_targets, sim_clr=True, use_only_rol=True
 )
+
 train_size = int(train_ratio * len(dataset))
 val_size = len(dataset) - train_size
 
@@ -45,9 +47,5 @@ trainer.set_model(model, "SimCLR-128") \
 .set_loss(loss_fn) 
 
 model = trainer.fit(train_data=train_loader, validation_data=val_loader, learning_rate=learning_rate, verbose=True, epochs=epochs, sim_clr=True)
-
 trainer.save("model_simclr.pth","history_simclr.txt")
-
-
-
 

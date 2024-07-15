@@ -24,7 +24,7 @@ class DataLoaderSimCLR(Dataset):
             bad_pairs_path = "C:/Cours-Sorbonne/M1/Stage/src/files/bad_pairs.txt", 
             to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
             augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
-            remove_to_enhance_files=False
+            remove_to_enhance_files=False, remove_bad_pairs=False
     ) -> None:
 
         self.use_context = use_context
@@ -83,9 +83,12 @@ class DataLoaderSimCLR(Dataset):
             if remove_to_enhance_files:
                 filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, to_enhance_pairs)
 
-            final_images, final_targets = self._remove_pairs(filtered_images, filtered_targets, bad_pairs)
-            self.images_names = final_images
-            self.target_names = final_targets
+            if remove_bad_pairs : 
+                filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, bad_pairs)
+            
+            
+            self.images_names = filtered_images
+            self.target_names = filtered_targets
 
             print(f"[INFO] After filtering : {len(self.images_names)} images")
             if SSH:
