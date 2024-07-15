@@ -2,12 +2,12 @@
 import torch
 import segmentation_models_pytorch as smp
 from model.Train import Trainer
+from model.DegradationAE import DegradationAE
 from torch.utils.data import DataLoader, random_split
 from utils.DataLoaderSimCLR import DataLoaderSimCLR as DSC
 
 epochs = 50
 image_size = 256
-num_classes = 1
 batch_size = 32
 learning_rate = 1e-4
 train_ratio = 0.8
@@ -35,20 +35,17 @@ train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True)
 
 
-# DSC.show_data(train_loader)
-# DSC.show_data(val_loader)
-
-
-encoder_name = 'efficientnet-b1'
-model = smp.Unet(encoder_name=encoder_name, encoder_weights='imagenet', classes=num_classes, in_channels=3)
+model = DegradationAE()
 optimizer = torch.optim.AdamW
 loss_fn = torch.nn.MSELoss()
 
 trainer = Trainer()
-trainer.set_model(model, encoder_name) \
+trainer.set_model(model, "DegradationAE") \
 .set_optimizer(optimizer) \
 .set_loss(loss_fn) 
 
 model = trainer.fit(train_data=train_loader, validation_data=val_loader, learning_rate=learning_rate, verbose=True, epochs=epochs)
 
 trainer.save("model_degradation.pth","history_degradation.txt")
+
+
