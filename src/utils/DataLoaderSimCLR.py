@@ -19,8 +19,12 @@ SSH = os.getcwd() != 'c:\\Cours-Sorbonne\\M1\\Stage\\src'
 class DataLoaderSimCLR(Dataset):
     def __init__(
             self, path_rol, path_sim_rol_nn_extracted, path_json_filtered, 
-            shape=(256,256), target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
-            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False
+            shape=(256,256),
+            target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
+            bad_pairs_path = "C:/Cours-Sorbonne/M1/Stage/src/files/bad_pairs.txt", 
+            to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
+            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
+            remove_to_enhance_files=False
     ) -> None:
 
         self.use_context = use_context
@@ -63,10 +67,27 @@ class DataLoaderSimCLR(Dataset):
                 raise ImportError("Can import the dataset, please set build_if_error at 'True'")
         
         if not use_only_rol:
-            for x,y in zip(self.images_names.copy(), self.target_names.copy()):
-                if x is None or y is None :
-                    self.images_names.remove(x)
-                    self.target_names.remove(y)
+            print(f"[INFO] Before filtering : {len(self.images_names)} images")
+            bad_pairs = self._get_pairs(bad_pairs_path)
+            to_enhance_pairs = self._get_pairs(to_enhance_path)
+            
+            # Step 1: Remove None values
+            filtered_images = []
+            filtered_targets = []
+
+            for x, y in zip(self.images_names, self.target_names):
+                if x is not None and y is not None:
+                    filtered_images.append(x)
+                    filtered_targets.append(y)
+
+            if remove_to_enhance_files:
+                filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, to_enhance_pairs)
+
+            final_images, final_targets = self._remove_pairs(filtered_images, filtered_targets, bad_pairs)
+            self.images_names = final_images
+            self.target_names = final_targets
+
+            print(f"[INFO] After filtering : {len(self.images_names)} images")
             if SSH:
                 self.target_names = [x.replace('C:/Cours-Sorbonne/M1/Stage/src/','../').replace('similaires_rol_extracted_nn_compressed','sim_rol_super_compressed') for x in self.target_names.copy()]
 
@@ -123,6 +144,7 @@ class DataLoaderSimCLR(Dataset):
             print("[ERROR-GETITEM]", e)
             random_tensor = torch.ones((3,self.shape[0], self.shape[1]))
             return random_tensor,random_tensor
+        
 
     def _get_best_file(self, image_file, target_file) -> str:
         """
@@ -148,7 +170,21 @@ class DataLoaderSimCLR(Dataset):
             finally:
                 return best_file
 
-
+    def _get_pairs(self, path):
+        pairs = None
+        with open(path,"r") as f :
+            pairs = f.readlines()
+        pairs = [x.replace('\n','') for x in pairs]
+        return pairs
+    
+    def _remove_pairs(self, images, targets, pairs_to_remove):
+        filtered_images = []
+        filtered_targets = []
+        for x, y in zip(images, targets):
+            if x not in pairs_to_remove:
+                filtered_images.append(x)
+                filtered_targets.append(y)
+        return filtered_images, filtered_targets
 
     def transform(self, image, augment=False):
         """
