@@ -36,6 +36,7 @@ class DataLoaderSimCLR(Dataset):
         self.shape = shape
         self.model = BertEncoder()
 
+        kernel_size = int(0.1 * self.shape[0]) if (int(0.1 * self.shape[0])%2 != 0) else int(0.1 * self.shape[0])-1
         self.transform_simclr = transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.Lambda(lambda x : PC.to_halftone(x)),
@@ -45,7 +46,7 @@ class DataLoaderSimCLR(Dataset):
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
                 transforms.RandomGrayscale(p=0.2),
-                transforms.GaussianBlur(kernel_size=int(0.1 * self.shape[0]), sigma=(0.1, 2.0))
+                transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 2.0))
         ]) if augment_halftone else transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.ToTensor(),  
@@ -54,9 +55,8 @@ class DataLoaderSimCLR(Dataset):
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
                 transforms.RandomGrayscale(p=0.2),
-                transforms.GaussianBlur(kernel_size=int(0.1 * self.shape[0]), sigma=(0.1, 2.0))
+                transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 2.0))
         ])
-
 
         self.transform = transforms.Compose([
                 transforms.Resize(self.shape),
