@@ -1,45 +1,46 @@
 import cv2
 import numpy as np
-import concurrent.futures
 from PIL import Image
+import multiprocessing
+from functools import partial
 
 class Processing:
+
     @staticmethod
-    def to_halftone(image, max_workers=4):
+    def _diffusion_process(channel_data, height, width):
+        diffusion_matrix = np.array([
+            [0, 1, 7 / 16],
+            [-1, 1, 3 / 16],
+            [0, 1, 5 / 16],
+            [1, 1, 1 / 16]
+        ])
+        
+        for y in range(height):
+            for x in range(width):
+                old_pixel = channel_data[y, x]
+                new_pixel = 255 if old_pixel > 127 else 0
+                channel_data[y, x] = new_pixel
+                quant_error = old_pixel - new_pixel
+                for dx, dy, factor in diffusion_matrix:
+                    nx, ny = int(x + dx), int(y + dy)
+                    if 0 <= nx < width and 0 <= ny < height:
+                        channel_data[ny, nx] = np.clip(channel_data[ny, nx] + quant_error * factor, 0, 255)
+        
+        return channel_data
+
+    @staticmethod
+    def to_halftone(image, max_workers=None):
+        if max_workers is None:
+            max_workers = multiprocessing.cpu_count()
+        
         images_np = np.array(image)
         height, width, channels = images_np.shape
-
-        def sliding_window(images_np, height, width):
-            diffusion_matrix = [
-                (1, 0, 7/16),
-                (-1, 1, 3/16),
-                (0, 1, 5/16),
-                (1, 1, 1/16)
-            ]
-
-            for y in range(height):
-                for x in range(width):
-                    old_pixel = images_np[y, x]
-                    new_pixel = 255 if old_pixel > 127 else 0
-                    images_np[y, x] = new_pixel
-                    quant_error = old_pixel - new_pixel
-                    for dx, dy, factor in diffusion_matrix:
-                        nx, ny = x + dx, y + dy
-                        if 0 <= nx < width and 0 <= ny < height:
-                            images_np[ny, nx] = np.clip(
-                                images_np[ny, nx] + quant_error * factor, 0, 255
-                        )
-                            
-            return images_np
         
-        channel_results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(sliding_window, images_np[:, :, channel], height, width) for channel in range(channels)]
-            for future in concurrent.futures.as_completed(futures):
-                channel_results.append(future.result())
-
-        stacked_image = np.stack(channel_results, axis=-1)
-
+        with multiprocessing.Pool(processes=max_workers) as pool:
+            partial_func = partial(Processing._diffusion_process, height=height, width=width)
+            results = pool.map(partial_func, [images_np[:, :, channel] for channel in range(channels)])
+        
+        stacked_image = np.stack(results, axis=-1)
         return Image.fromarray(stacked_image.astype('uint8'))
     
     ## ----------------- Oscar's PRAT project, Image Processing Functions ----------------- ##

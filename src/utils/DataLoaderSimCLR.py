@@ -24,7 +24,7 @@ class DataLoaderSimCLR(Dataset):
             bad_pairs_path = "C:/Cours-Sorbonne/M1/Stage/src/files/bad_pairs.txt", 
             to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
             augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
-            remove_to_enhance_files=False, remove_bad_pairs=False
+            remove_to_enhance_files=False, remove_bad_pairs=False, augment_halftone=False
     ) -> None:
 
         self.use_context = use_context
@@ -35,6 +35,36 @@ class DataLoaderSimCLR(Dataset):
         self.path_sim_rol_nn_extracted = path_sim_rol_nn_extracted
         self.shape = shape
         self.model = BertEncoder()
+
+        self.transform_simclr = transforms.Compose([
+                transforms.Resize(self.shape),  
+                transforms.Lambda(lambda x : PC.to_halftone(x)),
+                transforms.ToTensor(),  
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
+                transforms.RandomGrayscale(p=0.2),
+                transforms.GaussianBlur(kernel_size=int(0.1 * self.shape[0]), sigma=(0.1, 2.0))
+        ]) if augment_halftone else transforms.Compose([
+                transforms.Resize(self.shape),  
+                transforms.ToTensor(),  
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
+                transforms.RandomGrayscale(p=0.2),
+                transforms.GaussianBlur(kernel_size=int(0.1 * self.shape[0]), sigma=(0.1, 2.0))
+        ])
+
+
+        self.transform = transforms.Compose([
+                transforms.Resize(self.shape),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
+
+
 
         try:
             if self.use_only_rol  : 
@@ -107,14 +137,14 @@ class DataLoaderSimCLR(Dataset):
             target = None
             target_file = None
             if self.use_only_rol:
-                target = self.transform(img, augment=True)
+                target = self.transform_simclr(img)
             else:
                 target_file = self.target_names[idx]
                 target = Image.open(target_file.replace("\\","/")).convert('RGB')
                 if self.augment_test:
-                    target = self.transform(img, augment=True)
+                    target = self.transform_simclr(img)
                 else:
-                    target = self.transform(target, augment=False)
+                    target = self.transform(target)
 
             img = self.transform(img)
 
@@ -189,33 +219,6 @@ class DataLoaderSimCLR(Dataset):
                 filtered_targets.append(y)
         return filtered_images, filtered_targets
 
-    def transform(self, image, augment=False):
-        """
-            Function that apply transformation on an given Image
-            @param Image
-            @return Augmented Image
-        """
-        if augment:
-            f = transforms.Compose([
-                transforms.Resize(self.shape),  
-                # transforms.RandomApply([transforms.Lambda(lambda x : PC.to_halftone(x))], p=0.5),
-                transforms.ToTensor(),  
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-                transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
-                transforms.RandomGrayscale(p=0.2),
-                # transforms.RandomRotation(degrees=15),
-                transforms.GaussianBlur(kernel_size=int(0.1 * self.shape[0]), sigma=(0.1, 2.0))
-            ])
-        else:
-            f = transforms.Compose([
-                transforms.Resize(self.shape),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-            ])
-        return f(image)
-    
         
     def build_dataset(self, save_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy"):
         """
