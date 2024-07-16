@@ -239,24 +239,21 @@ class DataLoaderSimCLR(Dataset):
             Function that show data from a given loader
             @param loader
         """
+        assert nb_images < 32, "[ERROR] nb_images should be less than 32"
+        if use_context:
+            x, y,_,_ = next(iter(loader))
+        else:
+            x,y = next(iter(loader))
 
-        for i, data in enumerate(loader):
-            if use_context:
-                x, y,_,_ = data
-            else:
-                x,y = data
+        x = x.permute(0,2,3,1)
+        y = y.permute(0,2,3,1)
 
-            if i == nb_images:
-                break
-        
-            x = x.permute(0,2,3,1)
-            y = y.permute(0,2,3,1)
-
+        for i in range(nb_images):
             plt.figure(figsize=(12,7))
             plt.subplot(121)
-            plt.imshow(x[0])
+            plt.imshow(x[i])
             plt.title("Image")
             plt.subplot(122)
-            plt.imshow(y[0])
+            plt.imshow(y[i])
             plt.title("Target")
             plt.show()

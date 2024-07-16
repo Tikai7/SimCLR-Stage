@@ -1,48 +1,46 @@
 import cv2
 import numpy as np
 from PIL import Image
-import multiprocessing
-from functools import partial
-
 class Processing:
 
     @staticmethod
-    def _diffusion_process(channel_data, height, width):
-        diffusion_matrix = np.array([
-            [0, 1, 7 / 16],
-            [-1, 1, 3 / 16],
-            [0, 1, 5 / 16],
-            [1, 1, 1 / 16]
-        ])
+    def to_halftone(image):
+        # If the image has multiple channels, apply dithering to each channel separately
+        image = np.array(image)
+        if len(image.shape) == 3:
+            channels = cv2.split(image)
+            dithered_channels = [Processing.floyd_steinberg_dithering(channel) for channel in channels]
+            dithered_image = cv2.merge(dithered_channels)
+        else:
+            dithered_image = Processing.floyd_steinberg_dithering(image)
         
-        for y in range(height):
-            for x in range(width):
-                old_pixel = channel_data[y, x]
-                new_pixel = 255 if old_pixel > 127 else 0
-                channel_data[y, x] = new_pixel
-                quant_error = old_pixel - new_pixel
-                for dx, dy, factor in diffusion_matrix:
-                    nx, ny = int(x + dx), int(y + dy)
-                    if 0 <= nx < width and 0 <= ny < height:
-                        channel_data[ny, nx] = np.clip(channel_data[ny, nx] + quant_error * factor, 0, 255)
-        
-        return channel_data
+        return Image.fromarray(dithered_image)
 
     @staticmethod
-    def to_halftone(image, max_workers=None):
-        if max_workers is None:
-            max_workers = multiprocessing.cpu_count()
+    def floyd_steinberg_dithering(channel):
         
-        images_np = np.array(image)
-        height, width, channels = images_np.shape
-        
-        with multiprocessing.Pool(processes=max_workers) as pool:
-            partial_func = partial(Processing._diffusion_process, height=height, width=width)
-            results = pool.map(partial_func, [images_np[:, :, channel] for channel in range(channels)])
-        
-        stacked_image = np.stack(results, axis=-1)
-        return Image.fromarray(stacked_image.astype('uint8'))
-    
+        channel = channel / 255.0
+        height, width = channel.shape
+
+        for y in range(height):
+            for x in range(width):
+                old_pixel = channel[y, x]
+                new_pixel = np.round(old_pixel)
+                channel[y, x] = new_pixel
+                quant_error = old_pixel - new_pixel
+                if x + 1 < width:
+                    channel[y, x + 1] += quant_error * 7 / 16
+                if y + 1 < height and x - 1 >= 0:
+                    channel[y + 1, x - 1] += quant_error * 3 / 16
+                if y + 1 < height:
+                    channel[y + 1, x] += quant_error * 5 / 16
+                if y + 1 < height and x + 1 < width:
+                    channel[y + 1, x + 1] += quant_error * 1 / 16
+
+        channel = (channel * 255).astype(np.uint8)
+        return channel
+
+
     ## ----------------- Oscar's PRAT project, Image Processing Functions ----------------- ##
     @staticmethod
     def postprocessing_mask(predicted_mask_resized):
