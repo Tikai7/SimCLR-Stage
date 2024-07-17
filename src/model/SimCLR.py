@@ -33,9 +33,9 @@ class SimCLRBranch(nn.Module):
         return H, Z
 
 class SimCLR(nn.Module):
-    def __init__(self, feature_size=512) -> None:
+    def __init__(self, feature_size=128, use_context=False) -> None:
         super().__init__()
-        self.branch = SimCLRBranch(feature_size)
+        self.branch = SimCLRBranch(feature_size, use_context=use_context)
 
     def forward(self, X1, X2, C1=None, C2=None):
         H1, Z1 = self.branch(X1, C1)
