@@ -1,15 +1,19 @@
 import cv2
 import numpy as np
+import concurrent.futures
 from PIL import Image
 class Processing:
 
     @staticmethod
     def to_halftone(image):
-        # If the image has multiple channels, apply dithering to each channel separately
         image = np.array(image)
         if len(image.shape) == 3:
             channels = cv2.split(image)
-            dithered_channels = [Processing.floyd_steinberg_dithering(channel) for channel in channels]
+            with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+                futures = [executor.submit(Processing.floyd_steinberg_dithering, channel) for channel in channels]
+                # for f in concurrent.futures.as_completed(futures):
+                dithered_channels = [f.result() for f in concurrent.futures.as_completed(futures)]
+            
             dithered_image = cv2.merge(dithered_channels)
         else:
             dithered_image = Processing.floyd_steinberg_dithering(image)
