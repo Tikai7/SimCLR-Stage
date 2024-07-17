@@ -23,10 +23,11 @@ class DataLoaderSimCLR(Dataset):
             target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
             bad_pairs_path = "C:/Cours-Sorbonne/M1/Stage/src/files/bad_pairs.txt", 
             to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
-            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
-            remove_to_enhance_files=False, remove_bad_pairs=False, augment_halftone=False
+            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False, radius_fft=12,
+            remove_to_enhance_files=False, remove_bad_pairs=False, augment_halftone=False, remove_halftone_effect=False
     ) -> None:
 
+        self.remove_halftone_effect = remove_halftone_effect
         self.use_context = use_context
         self.use_only_rol = use_only_rol
         self.augment_test = augment_test
@@ -60,6 +61,13 @@ class DataLoaderSimCLR(Dataset):
 
         self.transform = transforms.Compose([
                 transforms.Resize(self.shape),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]) 
+        ])
+
+        self.transform_nohalftone = transforms.Compose([
+                transforms.Resize(self.shape),
+                transforms.Lambda(lambda x : PC.smooth_halftone_image(x, radius=radius_fft)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
@@ -143,6 +151,8 @@ class DataLoaderSimCLR(Dataset):
                 target = Image.open(target_file.replace("\\","/")).convert('RGB')
                 if self.augment_test:
                     target = self.transform_simclr(img)
+                elif self.remove_halftone_effect:
+                    target = self.transform_nohalftone(target)
                 else:
                     target = self.transform(target)
 

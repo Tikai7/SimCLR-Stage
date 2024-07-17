@@ -2,7 +2,47 @@ import cv2
 import numpy as np
 import concurrent.futures
 from PIL import Image
+
+import scipy
+
+
 class Processing:
+
+    @staticmethod
+    def fft_smoothing(image, radius=12):        
+        fft_image = np.fft.fft2(image)
+        fft_shifted = np.fft.fftshift(fft_image)
+        
+        u, v = fft_image.shape
+        center_u, center_v = u // 2, v // 2
+        y, x = np.ogrid[:u, :v]
+        mask = ((x - center_v)**2 + (y - center_u)**2) <= radius**2
+        
+        fft_shifted[~mask] = 0
+        
+        fft_unshifted = np.fft.ifftshift(fft_shifted)
+        smoothed_image = np.real(np.fft.ifft2(fft_unshifted))
+        
+        smoothed_image -= smoothed_image.min()
+        smoothed_image /= smoothed_image.max()
+        
+        smoothed_image = (smoothed_image * 255).astype(np.uint8)
+
+        return smoothed_image
+
+    @staticmethod
+    def smooth_halftone_image(image, radius=12):
+        image = np.array(image)
+        if len(image.shape) == 3:
+            channels = cv2.split(image)
+            with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+                futures = [executor.submit(Processing.fft_smoothing, channel, radius) for channel in channels]
+                smoothed_channels = [f.result() for f in concurrent.futures.as_completed(futures)]
+            smoothed_channels = cv2.merge(smoothed_channels)
+        else:
+            smoothed_channels = Processing.fft_smoothing(image)
+        
+        return Image.fromarray(smoothed_channels)
 
     @staticmethod
     def to_halftone(image):
