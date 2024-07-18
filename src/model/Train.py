@@ -83,29 +83,29 @@ class Trainer:
 
     def _train(self, train_data):
         # print("Training...")
-        losses = []
+        losses = 0
         self.model.train()
         for batch_x, batch_y in train_data:  
             batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
             y_hat = self.model(batch_x)
             loss = self.loss_fn(y_hat, batch_y)
-            losses.append(loss.item())
+            losses += loss.item()
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-        return sum(losses)/len(train_data)
+        return losses/len(train_data)
     
     def _validate(self, validation_data):
         # print("Validating...")
-        losses = []
+        losses = 0
         self.model.eval()
         with torch.no_grad():
             for batch_x, batch_y in validation_data:
                 batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
                 y_hat = self.model(batch_x)
                 loss = self.loss_fn(y_hat, batch_y)
-                losses.append(loss.item())
-        return sum(losses)/len(validation_data)
+                losses += loss.item()
+        return losses/len(validation_data)
     
 
     def _trainCLR(self, train_data, use_context=False):
