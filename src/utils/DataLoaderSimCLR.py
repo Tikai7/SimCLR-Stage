@@ -23,11 +23,10 @@ class DataLoaderSimCLR(Dataset):
             target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
             bad_pairs_path = "C:/Cours-Sorbonne/M1/Stage/src/files/bad_pairs.txt", 
             to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
-            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False, radius_fft=12,
-            remove_to_enhance_files=False, remove_bad_pairs=False, augment_halftone=False, remove_halftone_effect=False
+            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
+            remove_to_enhance_files=False, remove_bad_pairs=False, augment_halftone=False
     ) -> None:
 
-        self.remove_halftone_effect = remove_halftone_effect
         self.use_context = use_context
         self.use_only_rol = use_only_rol
         self.augment_test = augment_test
@@ -42,36 +41,26 @@ class DataLoaderSimCLR(Dataset):
                 transforms.Resize(self.shape),  
                 transforms.Lambda(lambda x : PC.to_halftone(x)),
                 transforms.ToTensor(),  
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                transforms.Normalize(mean=[0.5], std=[0.5]),
                 transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
-                transforms.RandomGrayscale(p=0.2),
                 transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 2.0))
         ]) if augment_halftone else transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.ToTensor(),  
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                transforms.Normalize(mean=[0.5], std=[0.5]),
                 transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
-                transforms.RandomGrayscale(p=0.2),
                 transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 2.0))
         ])
 
         self.transform = transforms.Compose([
                 transforms.Resize(self.shape),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]) 
+                transforms.Normalize(mean=[0.5], std=[0.5])
         ])
-
-        self.transform_nohalftone = transforms.Compose([
-                transforms.Resize(self.shape),
-                transforms.Lambda(lambda x : PC.smooth_halftone_image(x, radius=radius_fft)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])
-
 
 
         try:
@@ -141,18 +130,16 @@ class DataLoaderSimCLR(Dataset):
         try:
             image_file = self.images_names[idx].split('.')[0]
 
-            img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('RGB')
+            img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('L')
             target = None
             target_file = None
             if self.use_only_rol:
                 target = self.transform_simclr(img)
             else:
                 target_file = self.target_names[idx]
-                target = Image.open(target_file.replace("\\","/")).convert('RGB')
+                target = Image.open(target_file.replace("\\","/")).convert('L')
                 if self.augment_test:
                     target = self.transform_simclr(img)
-                elif self.remove_halftone_effect:
-                    target = self.transform_nohalftone(target)
                 else:
                     target = self.transform(target)
 
@@ -261,9 +248,9 @@ class DataLoaderSimCLR(Dataset):
         for i in range(nb_images):
             plt.figure(figsize=(12,7))
             plt.subplot(121)
-            plt.imshow(x[i])
+            plt.imshow(x[i], cmap="gray")
             plt.title("Image")
             plt.subplot(122)
-            plt.imshow(y[i])
+            plt.imshow(y[i], cmap="gray")
             plt.title("Target")
             plt.show()

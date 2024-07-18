@@ -7,7 +7,7 @@ class Plotter:
         plt.figure(figsize=fig_size)
         for i in range(n):
             plt.subplot(1, n, i+1)
-            plt.imshow(images[i])
+            plt.imshow(images[i], cmap="gray")
             plt.title(titles[i])
             plt.axis('off')
 
@@ -15,11 +15,11 @@ class Plotter:
     def plot_compare(img1, img2, title1, title2, fig_size=(12,7)):
         plt.figure(figsize=fig_size)
         plt.subplot(1, 2, 1)
-        plt.imshow(img1)
+        plt.imshow(img1, cmap="gray")
         plt.title(title1)
         plt.axis('off')
         plt.subplot(1, 2, 2)
-        plt.imshow(img2)
+        plt.imshow(img2,  cmap="gray")
         plt.title(title2)
         plt.axis('off')
 
@@ -50,11 +50,11 @@ class Plotter:
             
             plt.figure(figsize=figsize)
             plt.subplot(1, 2, 1)
-            plt.imshow(original_image)
+            plt.imshow(original_image, cmap="gray")
             plt.title(title1)
             plt.axis('off')
             plt.subplot(1, 2, 2)
-            plt.imshow(augmented_image)
+            plt.imshow(augmented_image, cmap="gray")
             plt.title(title2)
             plt.axis('off')
             plt.show()
