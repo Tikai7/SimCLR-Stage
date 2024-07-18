@@ -110,8 +110,8 @@ class Trainer:
 
     def _trainCLR(self, train_data, use_context=False):
         # print("Training...")
-        losses = []
         self.model.train()
+        losses = 0
         for data in train_data:
             output = None
             if use_context:
@@ -126,16 +126,16 @@ class Trainer:
 
             Z1, Z2 = output["projection_head"]
             loss = self.loss_fn(Z1,Z2)
-            losses.append(loss.item())
+            losses += loss.item()
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
-        return sum(losses)/len(train_data)
+        return losses/len(train_data)
 
     def _validateCLR(self, validation_data, use_context=False):
         # print("Validating...")
-        losses = []
+        losses = 0
         self.model.eval()
         with torch.no_grad():
             for data in validation_data:
@@ -152,9 +152,9 @@ class Trainer:
                 
                 Z1, Z2 = output["projection_head"]
                 loss = self.loss_fn(Z1,Z2)
-                losses.append(loss.item())
+                losses += loss.item()
 
-        return sum(losses)/len(validation_data)
+        return losses/len(validation_data)
     
     def _print_epoch(self, epoch, train_loss, val_loss, verbose):
         if verbose :

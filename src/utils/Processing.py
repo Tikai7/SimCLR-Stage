@@ -55,7 +55,6 @@ class Processing:
             channels = cv2.split(image)
             with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
                 futures = [executor.submit(Processing.jarvis_judice_ninke_dithering, channel) for channel in channels]
-                # for f in concurrent.futures.as_completed(futures):
                 dithered_channels = [f.result() for f in concurrent.futures.as_completed(futures)]
             
             dithered_image = cv2.merge(dithered_channels)
@@ -67,16 +66,13 @@ class Processing:
 
     @staticmethod
     def jarvis_judice_ninke_dithering(image):
-        # Define the error diffusion matrix for Jarvis, Judice, and Ninke dithering
         JJN_MATRIX = np.array([
             [0, 0, 0, 7, 5],
             [3, 5, 7, 5, 3],
             [1, 3, 5, 3, 1]
         ]) / 48.0
 
-        # Get image dimensions
         height, width = image.shape
-        # Iterate through the image pixels
         for y in range(height):
             for x in range(width):
                 old_pixel = image[y, x]
