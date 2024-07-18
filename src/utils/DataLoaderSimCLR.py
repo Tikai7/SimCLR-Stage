@@ -23,10 +23,12 @@ class DataLoaderSimCLR(Dataset):
             target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
             bad_pairs_path = "C:/Cours-Sorbonne/M1/Stage/src/files/bad_pairs.txt", 
             to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
+            path_to_halftone_images = None,
             augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
             remove_to_enhance_files=False, remove_bad_pairs=False, augment_halftone=False
     ) -> None:
 
+        self.path_ht_rol = path_to_halftone_images
         self.use_context = use_context
         self.use_only_rol = use_only_rol
         self.augment_test = augment_test
@@ -42,18 +44,18 @@ class DataLoaderSimCLR(Dataset):
                 transforms.Lambda(lambda x : PC.to_halftone(x)),
                 transforms.ToTensor(),  
                 transforms.Normalize(mean=[0.5], std=[0.5]),
-                transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
+                transforms.RandomApply([transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0))],p=0.5),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
-                transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 2.0))
+                transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 1.0))],p=0.5)
         ]) if augment_halftone else transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.ToTensor(),  
                 transforms.Normalize(mean=[0.5], std=[0.5]),
-                transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0)),
+                transforms.RandomApply([transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0))],p=0.5),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
-                transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 2.0))
+                transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 1.0))],p=0.5)
         ])
 
         self.transform = transforms.Compose([
@@ -133,7 +135,11 @@ class DataLoaderSimCLR(Dataset):
             img = Image.open(os.path.join(self.path_rol,image_file)+".jpg").convert('L')
             target = None
             target_file = None
-            if self.use_only_rol:
+            
+            if self.path_ht_rol is not None:
+                target_image = Image.open(os.path.join(self.path_ht_rol,image_file)+".jpg").convert('L')
+                target = self.transform_simclr(target_image)
+            elif self.use_only_rol:
                 target = self.transform_simclr(img)
             else:
                 target_file = self.target_names[idx]
