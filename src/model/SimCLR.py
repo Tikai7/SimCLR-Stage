@@ -14,6 +14,7 @@ class SimCLRBranch(nn.Module):
         self.total_features = self.RESNET_FEATURES_SIZE + self.BERT_FEATURES_SIZE if use_context else self.RESNET_FEATURES_SIZE
 
         resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+        resnet.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         resnet.fc = nn.Identity()
         self.feature_extractor = resnet    
         self.projection_head = nn.Sequential(

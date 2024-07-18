@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torchvision.models as models
 
@@ -18,17 +17,17 @@ class DegradationBlock(nn.Module):
         return self.relu(x)
 
 class DegradationAE(nn.Module):
-
     def __init__(self):
         super().__init__()
         resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        resnet.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         self.encoder = nn.Sequential(*list(resnet.children())[:-2])
         self.decoder = nn.Sequential(
             DegradationBlock(512, 256),
             DegradationBlock(256, 128),
             DegradationBlock(128, 64),
             DegradationBlock(64, 32),
-            nn.ConvTranspose2d(32, 3, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(32, 1, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.Tanh()
         )
 
