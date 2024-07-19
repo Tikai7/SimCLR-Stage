@@ -3,8 +3,6 @@ import os
 import requests
 from tqdm import tqdm
 import json
-import torch
-
 
 class JSONRetriever:
     """

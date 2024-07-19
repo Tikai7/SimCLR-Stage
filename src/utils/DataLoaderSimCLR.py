@@ -36,8 +36,10 @@ class DataLoaderSimCLR(Dataset):
         self.path_rol = path_rol
         self.path_sim_rol_nn_extracted = path_sim_rol_nn_extracted
         self.shape = shape
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = BertEncoder()
-
+        self.model.to(self.device)
+        
         kernel_size = int(0.1 * self.shape[0]) if (int(0.1 * self.shape[0])%2 != 0) else int(0.1 * self.shape[0])-1
         self.transform_simclr = transforms.Compose([
                 transforms.Resize(self.shape),  
