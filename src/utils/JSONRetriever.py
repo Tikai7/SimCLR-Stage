@@ -11,6 +11,18 @@ class JSONRetriever:
     Class to retrieve images from JSON files.
     """
     @staticmethod
+    def get_encoded_captions(model, image_file, path, target=False):            
+        try:
+            image_file = image_file.split('\\')[1].replace('.jpg','.txt') if target else image_file+'.txt'
+            with open(f"{path}/captions/{image_file}", "r") as f:
+                text = f.read()
+            encoded_text = model(text).squeeze(0)
+            return encoded_text
+        except Exception as e:
+            print(f"[ERROR] {e}")
+            return None
+
+    @staticmethod
     def get_encoded_context(model, path, path_json, target=False, folder_root="json_filtered"):
         """
         Get context from the images within the JSON files
