@@ -55,7 +55,7 @@ class DataLoaderSimCLR(Dataset):
                 transforms.RandomApply([transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0))],p=0.5),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
-                transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 1.0))],p=0.5)
+                transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.2, 1.0))],p=0.5)
         ])
 
         self.transform = transforms.Compose([
