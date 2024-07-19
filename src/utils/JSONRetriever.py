@@ -3,17 +3,30 @@ import os
 import requests
 from tqdm import tqdm
 import json
+import random
+from textattack.augmentation import WordNetAugmenter, EasyDataAugmenter
+ 
+augmenter = WordNetAugmenter()
+eda_augmenter = EasyDataAugmenter()
 
 class JSONRetriever:
     """
     Class to retrieve images from JSON files.
     """
     @staticmethod
-    def get_encoded_captions(model, image_file, path, target=False):            
+    def get_encoded_captions(model, image_file, path, target=False, augment=False):            
         try:
             image_file = image_file.split('\\')[1].replace('.jpg','.txt') if target else image_file+'.txt'
             with open(f"{path}/captions/{image_file}", "r") as f:
                 text = f.read()
+
+            if augment:
+                print(text)
+                text = augmenter.augment(text)[0]
+                text = eda_augmenter.augment(text)
+                text = text[random.randint(0,len(text)-1)]
+                
+                print(text)
             encoded_text = model(text).squeeze(0)
             return encoded_text
         except Exception as e:

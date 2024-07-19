@@ -157,18 +157,15 @@ class DataLoaderSimCLR(Dataset):
                 
                 img_context, target_context = None,None
 
+                img_context = JR.get_encoded_captions(self.model, image_file, self.path_rol)
+
                 if not self.use_only_rol:
                     # img_context = JR.get_encoded_context(self.model, image_file, self.path_rol)
                     # target_context = JR.get_encoded_context(self.model, target_file, self.path_sim_rol_nn_extracted, target=True)
-                    img_context = JR.get_encoded_captions(self.model, image_file, self.path_rol)
-                    target_context = JR.get_encoded_captions(self.model, target_file, self.path_sim_rol_nn_extracted, target=True)
+                    target_context = JR.get_encoded_captions(self.model, target_file, self.path_sim_rol_nn_extracted, target=True, augment=False)
                 else:
                     # img_context = JR.get_encoded_context(self.model, image_file, self.path_rol, folder_root="json")
-                    img_context = JR.get_encoded_captions(self.model, image_file, self.path_rol)
-                    if img_context is not None:
-                        target_context = img_context.clone()
-                    else:
-                        target_context = None
+                    target_context = JR.get_encoded_captions(self.model, image_file, self.path_rol, augment=True)
 
 
                 if target_context is None or img_context is None:
