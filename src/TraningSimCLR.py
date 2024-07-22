@@ -1,51 +1,58 @@
+
 import torch
 from model.SimCLR import SimCLR
 from model.Train import Trainer
 from model.Losses import NTXentLoss
 from utils.DataLoaderSimCLR import DataLoaderSimCLR as DSC
 from torch.utils.data import DataLoader, random_split
+from utils.Similarity import Similarity as SMY
 
-torch.cuda.empty_cache()
-
+path_rol_ht_super_comp = "../data/rol_ht_super_compressed" 
 path_rol_comp = "../data/rol_super_compressed" 
 path_sim_rol_extracted_comp = "../data/sim_rol_super_compressed" 
 path_filtered = "../data/rol_super_compressed/json_filtered"
+path_sim_rol_test = "../data/sim_rol_test"
 path_targets = "../data/rol_sim_rol_couples/targets.npy"
-
+bad_pairs_path = "./files/bad_pairs.txt"
+to_enhance_path = "./files/to_enhance_pairs.txt"
 
 epochs = 30
 image_size = 256
-batch_size = 32
-learning_rate = 1e-2
+batch_size = 64
+learning_rate = 1e-3
 train_ratio = 0.8
 val_ratio = 0.2
 temperature = 0.5
 
 dataset = DSC(
-    path_rol_comp, path_sim_rol_extracted_comp, path_filtered,
-    shape=(image_size, image_size), target_path=path_targets, sim_clr=True, use_only_rol=True
+    path_rol_comp, path_sim_rol_extracted_comp, path_filtered, 
+    shape=(image_size, image_size), target_path=path_targets,
+    to_enhance_path=to_enhance_path, bad_pairs_path=bad_pairs_path,
+    path_sim_rol_test=path_sim_rol_test, max_images=40000,
+    augment_test=False, use_only_rol=True, use_context=False, remove_to_enhance_files=True, remove_bad_pairs=True
 )
 
 train_size = int(train_ratio * len(dataset))
-val_size = len(dataset) - train_size
+val_size = len(dataset) - train_size 
 
 train_set, val_set = random_split(dataset, [train_size, val_size])
 
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True)
 
-# DSC.show_data(train_loader)
-# DSC.show_data(val_loader)
 
-model = SimCLR(feature_size=128)
+model = SimCLR(feature_size=128, use_context=False)
 optimizer = torch.optim.AdamW
 loss_fn = NTXentLoss(temperature=temperature)
 
 trainer = Trainer()
-trainer.set_model(model, "SimCLR-128") \
+trainer.set_model(model, "SimCLR-RG") \
 .set_optimizer(optimizer) \
 .set_loss(loss_fn) 
 
-model = trainer.fit(train_data=train_loader, validation_data=val_loader, learning_rate=learning_rate, verbose=True, epochs=epochs, sim_clr=True)
-trainer.save("model_simclr.pth","history_simclr.txt")
+model = trainer.fit(train_data=train_loader, validation_data=val_loader,
+                     learning_rate=learning_rate, verbose=True, epochs=epochs, sim_clr=True, use_context=False)
+
+trainer.save("model_simclr_RG.pth","history_simclr_RG.txt")
+
 

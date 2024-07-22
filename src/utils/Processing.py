@@ -2,51 +2,38 @@ import cv2
 import numpy as np
 import concurrent.futures
 from PIL import Image
+import random
 
-import scipy
 
 
+class RandomRotation90:
+    def __init__(self):
+        pass
+    
+    def __call__(self, img):
+        # Randomly choose between 90 or -90 degrees
+        angle = random.choice([90, -90])
+        return img.rotate(angle, expand=True)
+    
 class Processing:
 
     @staticmethod
-    def median_smoothing(image):
-        return cv2.medianBlur(image, 5)
-
-    @staticmethod
-    def fft_smoothing(image, radius=12):        
-        fft_image = np.fft.fft2(image)
-        fft_shifted = np.fft.fftshift(fft_image)
-        
-        u, v = fft_image.shape
-        center_u, center_v = u // 2, v // 2
-        y, x = np.ogrid[:u, :v]
-        mask = ((x - center_v)**2 + (y - center_u)**2) <= radius**2
-        
-        fft_shifted[~mask] = 0
-        
-        fft_unshifted = np.fft.ifftshift(fft_shifted)
-        smoothed_image = np.real(np.fft.ifft2(fft_unshifted))
-        
-        smoothed_image -= smoothed_image.min()
-        smoothed_image /= smoothed_image.max()
-        
-        smoothed_image = (smoothed_image * 255).astype(np.uint8)
-
-        return smoothed_image
-
-    @staticmethod
-    def smooth_halftone_image(image, radius=12):
+    def apply_rotogravure_effect(image, dot_size=2, intensity=128):
         image = np.array(image)
-        if len(image.shape) == 3:
-            channels = cv2.split(image)
-            with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
-                futures = [executor.submit(Processing.fft_smoothing, channel, radius) for channel in channels]
-                smoothed_channels = [f.result() for f in concurrent.futures.as_completed(futures)]
-            smoothed_channels = cv2.merge(smoothed_channels)
-        else:
-            smoothed_channels = Processing.fft_smoothing(image)
-        
-        return Image.fromarray(smoothed_channels)
+        normalized_image = image / 255.0
+
+        dot_pattern = np.zeros((dot_size, dot_size), dtype=np.float32)
+        cv2.circle(dot_pattern, (dot_size // 2, dot_size // 2), dot_size // 4, 1, -1)
+
+        tiled_pattern = np.tile(dot_pattern, (image.shape[0] // dot_size + 1, image.shape[1] // dot_size + 1))
+        tiled_pattern = tiled_pattern[:image.shape[0], :image.shape[1]]
+
+        pattern_intensity = intensity / 255.0
+        rotogravure_effect = normalized_image * (1 - pattern_intensity) + tiled_pattern * pattern_intensity
+
+        rotogravure_effect = (rotogravure_effect * 255).astype(np.uint8)
+
+        return Image.fromarray(rotogravure_effect)
 
     @staticmethod
     def to_halftone(image):
@@ -54,38 +41,15 @@ class Processing:
         if len(image.shape) == 3:
             channels = cv2.split(image)
             with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
-                futures = [executor.submit(Processing.jarvis_judice_ninke_dithering, channel) for channel in channels]
+                futures = [executor.submit(Processing.floyd_steinberg_dithering, channel) for channel in channels]
+                # for f in concurrent.futures.as_completed(futures):
                 dithered_channels = [f.result() for f in concurrent.futures.as_completed(futures)]
             
             dithered_image = cv2.merge(dithered_channels)
         else:
-            dithered_image = Processing.jarvis_judice_ninke_dithering(image)
+            dithered_image = Processing.floyd_steinberg_dithering(image)
         
         return Image.fromarray(dithered_image)
-
-
-    @staticmethod
-    def jarvis_judice_ninke_dithering(image):
-        JJN_MATRIX = np.array([
-            [0, 0, 0, 7, 5],
-            [3, 5, 7, 5, 3],
-            [1, 3, 5, 3, 1]
-        ]) / 48.0
-
-        height, width = image.shape
-        for y in range(height):
-            for x in range(width):
-                old_pixel = image[y, x]
-                new_pixel = 255 * (old_pixel > 127)
-                image[y, x] = new_pixel
-                quant_error = old_pixel - new_pixel
-                for dy in range(3):
-                    for dx in range(5):
-                        ny, nx = y + dy, x + dx - 2
-                        if 0 <= ny < height and 0 <= nx < width:
-                            image[ny, nx] += quant_error * JJN_MATRIX[dy, dx]
-
-        return image
 
     @staticmethod
     def floyd_steinberg_dithering(channel):
