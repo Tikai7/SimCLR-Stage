@@ -219,7 +219,7 @@ class Similarity:
 
 
     @staticmethod
-    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None, use_context=False, k=10):
+    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None, use_context=False, k=10, use_sift=False, is_test=False):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[INFO] Matching on {device}")
         model.to(device)
@@ -229,6 +229,7 @@ class Similarity:
             with torch.no_grad():
                 original_features, augmented_features = [], []
                 original_images, augmented_images = [], []
+                original_images_sift, augmented_images_sift = [], []
                 for data in tqdm(test_loader):
                     output = None
                     if use_context:
@@ -236,6 +237,11 @@ class Similarity:
                         batch_x, batch_y = batch_x.to(device), batch_y.to(device)
                         context_x, context_y = context_x.to(device), context_y.to(device)
                         output = model(batch_x, batch_y, context_x, context_y)
+                    elif is_test:
+                        batch_x, batch_y, batch_w, batch_z = data
+                        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                        batch_w, batch_z = batch_w.to(device), batch_z.to(device)
+                        output = model(batch_x, batch_y)
                     else:
                         batch_x, batch_y = data
                         batch_x, batch_y = batch_x.to(device), batch_y.to(device)
@@ -247,24 +253,41 @@ class Similarity:
                     augmented_features.append(Z2.cpu())
                     original_images.append(batch_x.cpu())
                     augmented_images.append(batch_y.cpu())
+
+                    if use_sift:
+                        original_images_sift.append(batch_w.cpu())
+                        augmented_images_sift.append(batch_z.cpu())
                         
             original_features = torch.cat(original_features, dim=0)
             augmented_features = torch.cat(augmented_features, dim=0)
             original_images = torch.cat(original_images, dim=0)
             augmented_images = torch.cat(augmented_images, dim=0)
 
+            if use_sift:
+                original_images_sift = torch.cat(original_images_sift, dim=0)
+                augmented_images_sift = torch.cat(augmented_images_sift, dim=0)
+                original_sift_features = [SIFTDetector.computeSIFT(img.numpy()) for img in original_images_sift]
+                augmented_sift_features = [SIFTDetector.computeSIFT(img.numpy()) for img in augmented_images_sift]
+
             sim_matrix = F.cosine_similarity(original_features.unsqueeze(1), augmented_features.unsqueeze(0), dim=-1)
             top_k_indices = torch.topk(sim_matrix, k, dim=1).indices
             true_indices = torch.arange(len(top_k_indices)).unsqueeze(1)
 
-            top_k_correct = (top_k_indices == true_indices).sum().item()
-            precision_top_k = top_k_correct / (len(top_k_indices) * k)
+            if use_sift :
+                for idx, (_, des) in enumerate(original_sift_features):
+                    if des is not None:
+                        best_matches = SIFTDetector.getBestMatch(des, [augmented_sift_features[i][1] for i in top_k_indices[idx]])
+                        top_k_indices[idx] = torch.tensor([top_k_indices[idx][match[0]] for match in best_matches])
 
-            print(f"[INFO] Top-{k} Precision: {precision_top_k}")
+            for i in range(0, k + 1, 5):
+                top_n = i if i != 0 else 1
+                current_top_k_indices = top_k_indices[:, :top_n]
+                top_n_correct = (current_top_k_indices == true_indices).sum().item()
+                precision_top_n = top_n_correct / len(top_k_indices)
+                print(f"[INFO] Top-{top_n} Precision: {precision_top_n}")
 
             return top_k_indices, original_images, augmented_images
         
-
         elif path is not None and path_to_match is not None:
             pass
         else:

@@ -1,4 +1,5 @@
 import os
+import numpy as np 
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
@@ -12,6 +13,8 @@ class DataLoaderTest(Dataset):
         self.all_files = sorted(self.all_files, key=lambda x:int(x.split("ID_")[1].split('.')[0]))
         self.shape = shape 
         self.path_sim_test = path_to_sim_test
+
+
         self.transform = transforms.Compose([
                 transforms.Resize(self.shape),
                 transforms.ToTensor(),
@@ -41,7 +44,11 @@ class DataLoaderTest(Dataset):
         img = Image.open(f"{self.path_sim_test}/{img_file}").convert("L")
         target = Image.open(f"{self.path_sim_test}/{target_file}").convert("L")
 
-        img = self.transform(img)
-        target = self.transform(target)
+        
+        img = transforms.Resize(self.shape)(img)
+        target = transforms.Resize(self.shape)(target)
 
-        return img, target
+        img_t = self.transform(img)
+        target_t = self.transform(target)
+        
+        return img_t, target_t, np.array(img), np.array(target)

@@ -51,7 +51,7 @@ class DataLoaderSimCLR(Dataset):
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
                 transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.2, 0.5))],p=0.5),
-                transforms.RandomApply([transforms.RandomRotation(degrees=(-30, 30))], p=0.2)
+                transforms.RandomApply([transforms.RandomRotation(degrees=(-90, 90))], p=0.2)
         ]) if augment_halftone else transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.ToTensor(),  
@@ -60,7 +60,7 @@ class DataLoaderSimCLR(Dataset):
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
                 transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.2, 0.5))],p=0.5),
-                transforms.RandomApply([transforms.RandomRotation(degrees=(-30, 30))], p=0.2)
+                transforms.RandomApply([transforms.RandomRotation(degrees=(-90, 90))], p=0.2)
         ])
 
         self.transform = transforms.Compose([
