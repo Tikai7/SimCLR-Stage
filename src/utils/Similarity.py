@@ -254,13 +254,13 @@ class Similarity:
             augmented_images = torch.cat(augmented_images, dim=0)
 
             sim_matrix = F.cosine_similarity(original_features.unsqueeze(1), augmented_features.unsqueeze(0), dim=-1)
-            top_k_indices = torch.topk(sim_matrix, k, dim=1).indices            
+            top_k_indices = torch.topk(sim_matrix, k, dim=1).indices
             true_indices = torch.arange(len(top_k_indices)).unsqueeze(1)
-            
-            top_k_correct = (top_k_indices == true_indices).sum().item()
-            accuracy_top_k = top_k_correct / len(true_indices)
 
-            print(f"[INFO] Top-{k} Accuracy: {accuracy_top_k}")
+            top_k_correct = (top_k_indices == true_indices).sum().item()
+            precision_top_k = top_k_correct / (len(top_k_indices) * k)
+
+            print(f"[INFO] Top-{k} Precision: {precision_top_k}")
 
             return top_k_indices, original_images, augmented_images
         
