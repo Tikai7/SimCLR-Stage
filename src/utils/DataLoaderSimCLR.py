@@ -23,6 +23,7 @@ class DataLoaderSimCLR(Dataset):
             target_path="C:/Cours-Sorbonne/M1/Stage/src/data/rol_sim_rol_triplets/targets.npy", 
             bad_pairs_path = "C:/Cours-Sorbonne/M1/Stage/src/files/bad_pairs.txt", 
             to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
+            path_sim_rol_test = "C:/Cours-Sorbonne/M1/Stage/src/data/data_PPTI/sim_rol_test",
             path_to_halftone_images = None,
             augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
             remove_to_enhance_files=False, remove_bad_pairs=False, augment_halftone=False
@@ -65,7 +66,6 @@ class DataLoaderSimCLR(Dataset):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5], std=[0.5])
         ])
-
 
         try:
             if self.use_only_rol  : 
@@ -111,12 +111,15 @@ class DataLoaderSimCLR(Dataset):
                     filtered_images.append(x)
                     filtered_targets.append(y)
 
+
+
             if remove_to_enhance_files:
                 filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, to_enhance_pairs)
 
             if remove_bad_pairs : 
                 filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, bad_pairs)
-            
+
+            filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, self._get_test_files(path_to_sim_test=path_sim_rol_test))
             
             self.images_names = filtered_images
             self.target_names = filtered_targets
@@ -182,7 +185,22 @@ class DataLoaderSimCLR(Dataset):
             print("[ERROR-GETITEM]", e)
             random_tensor = torch.ones((3,self.shape[0], self.shape[1]))
             return random_tensor,random_tensor
-        
+
+
+    def _get_test_files(self, path_to_sim_test):
+        temp_all_files = os.listdir(path_to_sim_test)
+        temp_all_files = sorted(temp_all_files, key=lambda x:int(x.split("ID_")[1].split('.')[0]))
+        temp_image_names = []
+        for i in range(0,len(temp_all_files)-1,2):
+            target = temp_all_files[i]
+            img = temp_all_files[i+1]
+
+            if not img.startswith("btv"):
+                img, target = target, img
+            temp_image_names.append(img.split("_ID")[0])
+
+        return temp_image_names
+
 
     def _get_best_file(self, image_file, target_file) -> str:
         """
