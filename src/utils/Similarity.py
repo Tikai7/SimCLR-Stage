@@ -217,8 +217,9 @@ class Similarity:
             most_similar_pairs.append((i, most_similar_idx))
         return most_similar_pairs
 
+
     @staticmethod
-    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None, use_context=False):
+    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None, use_context=False, k=10):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[INFO] Matching on {device}")
         model.to(device)
@@ -253,12 +254,15 @@ class Similarity:
             augmented_images = torch.cat(augmented_images, dim=0)
 
             sim_matrix = F.cosine_similarity(original_features.unsqueeze(1), augmented_features.unsqueeze(0), dim=-1)
-            most_similar_indices = torch.argmax(sim_matrix, dim=1)
-            true_indices = torch.arange(len(most_similar_indices))
-            accuracy = (most_similar_indices == true_indices).sum().item() / len(true_indices)
+            top_k_indices = torch.topk(sim_matrix, k, dim=1).indices            
+            true_indices = torch.arange(len(top_k_indices)).unsqueeze(1)
+            
+            top_k_correct = (top_k_indices == true_indices).sum().item()
+            accuracy_top_k = top_k_correct / len(true_indices)
 
-            print(f"[INFO] Accuracy : {accuracy}")
-            return most_similar_indices, original_images, augmented_images
+            print(f"[INFO] Top-{k} Accuracy: {accuracy_top_k}")
+
+            return top_k_indices, original_images, augmented_images
         
 
         elif path is not None and path_to_match is not None:
