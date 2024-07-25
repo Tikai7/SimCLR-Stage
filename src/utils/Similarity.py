@@ -253,11 +253,12 @@ class Similarity:
                     augmented_features.append(Z2.cpu())
                     original_images.append(batch_x.cpu())
                     augmented_images.append(batch_y.cpu())
-
+                    
                     if use_sift:
                         original_images_sift.append(batch_w.cpu())
                         augmented_images_sift.append(batch_z.cpu())
-                        
+
+
             original_features = torch.cat(original_features, dim=0)
             augmented_features = torch.cat(augmented_features, dim=0)
             original_images = torch.cat(original_images, dim=0)

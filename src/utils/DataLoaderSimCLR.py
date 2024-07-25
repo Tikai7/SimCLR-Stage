@@ -27,7 +27,7 @@ class DataLoaderSimCLR(Dataset):
             path_sim_rol_test = "C:/Cours-Sorbonne/M1/Stage/src/data/data_PPTI/sim_rol_test",
             path_to_halftone_images = None,
             augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
-            remove_to_enhance_files=False, remove_bad_pairs=False
+            remove_to_enhance_files=False, remove_bad_pairs=False, remove_sub_testset=True
     ) -> None:
 
         self.path_ht_rol = path_to_halftone_images
@@ -46,7 +46,7 @@ class DataLoaderSimCLR(Dataset):
         self.transform_simclr = transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.RandomApply([transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0))],p=0.5),
-                transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x)),
+                transforms.RandomApply([transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x))], p=0.5),
                 transforms.RandomApply([RandomRotation90()], p=0.2),
                 transforms.ToTensor(),  
                 transforms.Normalize(mean=[0.5], std=[0.5]),
@@ -113,7 +113,8 @@ class DataLoaderSimCLR(Dataset):
             if remove_bad_pairs : 
                 filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, bad_pairs)
 
-            filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, self._get_test_files(path_to_sim_test=path_sim_rol_test))
+            if remove_sub_testset : 
+                filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, self._get_test_files(path_to_sim_test=path_sim_rol_test))
             
             self.images_names = filtered_images
             self.target_names = filtered_targets

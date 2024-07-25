@@ -2,16 +2,18 @@ import os
 import numpy as np 
 from torch.utils.data import Dataset
 from torchvision import transforms
+from utils.Processing import Processing as PC
 from PIL import Image
 
 
 class DataLoaderTest(Dataset):
 
-    def __init__(self, path_to_sim_test="",shape=(256,256)) -> None:
+    def __init__(self, path_to_sim_test="",shape=(256,256), augment=False) -> None:
         super().__init__()
         self.all_files = os.listdir(path_to_sim_test)
         self.all_files = sorted(self.all_files, key=lambda x:int(x.split("ID_")[1].split('.')[0]))
         self.shape = shape 
+        self.augment = augment
         self.path_sim_test = path_to_sim_test
 
 
@@ -19,7 +21,15 @@ class DataLoaderTest(Dataset):
                 transforms.Resize(self.shape),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5], std=[0.5])
-        ])
+        ]) 
+
+        self.augment_transform = transforms.Compose([
+                transforms.Resize(self.shape),
+                transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5], std=[0.5])
+        ]) 
+
         
         self.target_names = []
         self.image_names = []
@@ -49,6 +59,6 @@ class DataLoaderTest(Dataset):
         target = transforms.Resize(self.shape)(target)
 
         img_t = self.transform(img)
-        target_t = self.transform(target)
+        target_t = self.transform(target) if not self.augment else self.augment_transform(target)
         
         return img_t, target_t, np.array(img), np.array(target)

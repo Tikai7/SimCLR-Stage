@@ -11,7 +11,6 @@ class RandomRotation90:
         pass
     
     def __call__(self, img):
-        # Randomly choose between 90 or -90 degrees
         angle = random.choice([90, -90])
         return img.rotate(angle, expand=True)
     
