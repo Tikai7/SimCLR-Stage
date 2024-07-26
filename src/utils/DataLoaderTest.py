@@ -1,21 +1,33 @@
 import os
+import torch
 import numpy as np 
 from torch.utils.data import Dataset
 from torchvision import transforms
 from utils.Processing import Processing as PC
+from utils.JSONRetriever import JSONRetriever as JR
+from model.BERT import BertEncoder
 from PIL import Image
 
+path_rol_comp = "C:/Cours-Sorbonne/M1/Stage/src/data/rol_compressed" 
 
 class DataLoaderTest(Dataset):
 
-    def __init__(self, path_to_sim_test="",shape=(256,256), augment=False) -> None:
+    def __init__(self, 
+            path_rol="C:/Cours-Sorbonne/M1/Stage/src/data/rol_compressed" , path_sim_rol= "C:/Cours-Sorbonne/M1/Stage/src/data/similaires_rol_extracted_nn_compressed",
+            path_to_sim_test="",shape=(256,256), augment=False, use_context=False
+        ) -> None:
         super().__init__()
         self.all_files = os.listdir(path_to_sim_test)
         self.all_files = sorted(self.all_files, key=lambda x:int(x.split("ID_")[1].split('.')[0]))
         self.shape = shape 
         self.augment = augment
+        self.use_context = use_context
         self.path_sim_test = path_to_sim_test
-
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = BertEncoder()
+        self.model.to(self.device)
+        self.path_rol = path_rol
+        self.path_sim_rol_nn_extracted = path_sim_rol
 
         self.transform = transforms.Compose([
                 transforms.Resize(self.shape),
@@ -54,11 +66,19 @@ class DataLoaderTest(Dataset):
         img = Image.open(f"{self.path_sim_test}/{img_file}").convert("L")
         target = Image.open(f"{self.path_sim_test}/{target_file}").convert("L")
 
-        
         img = transforms.Resize(self.shape)(img)
         target = transforms.Resize(self.shape)(target)
 
         img_t = self.transform(img)
         target_t = self.transform(target) if not self.augment else self.augment_transform(target)
         
+
+        if self.use_context:
+            img_file = img_file.split("_ID")[0]
+            target_file = target_file.split("_ID")[0].replace(".jpg","")
+            img_context = JR.get_encoded_captions(self.model, img_file, self.path_rol)
+            target_context = JR.get_encoded_captions(self.model, target_file, self.path_sim_rol_nn_extracted, augment=False)
+
+            return img_t, target_t, np.array(img), np.array(target), img_context, target_context
+
         return img_t, target_t, np.array(img), np.array(target)

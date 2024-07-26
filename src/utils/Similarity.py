@@ -233,10 +233,17 @@ class Similarity:
                 for data in tqdm(test_loader):
                     output = None
                     if use_context:
-                        batch_x, batch_y, context_x, context_y = data
-                        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-                        context_x, context_y = context_x.to(device), context_y.to(device)
-                        output = model(batch_x, batch_y, context_x, context_y)
+                        if is_test:
+                            batch_x, batch_y, batch_w, batch_z, context_x, context_y = data
+                            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                            batch_w, batch_z = batch_w.to(device), batch_z.to(device)
+                            context_x, context_y = context_x.to(device), context_y.to(device)
+                            output = model(batch_x, batch_y, context_x, context_y)
+                        else:
+                            batch_x, batch_y, context_x, context_y = data
+                            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                            context_x, context_y = context_x.to(device), context_y.to(device)
+                            output = model(batch_x, batch_y, context_x, context_y)
                     elif is_test:
                         batch_x, batch_y, batch_w, batch_z = data
                         batch_x, batch_y = batch_x.to(device), batch_y.to(device)

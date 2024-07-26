@@ -252,16 +252,22 @@ class DataLoaderSimCLR(Dataset):
 
 
     @staticmethod
-    def show_data(loader, nb_images=1, use_context=False):
+    def show_data(loader, nb_images=1, use_context=False, is_test=False):
         """
             Function that show data from a given loader
             @param loader
         """
         assert nb_images < 32, "[ERROR] nb_images should be less than 32"
         if use_context:
-            x, y,_,_ = next(iter(loader))
+            if is_test:
+                x, y,_,_,_,_ = next(iter(loader))
+            else:
+                x, y,_,_ = next(iter(loader))
         else:
-            x,y = next(iter(loader))
+            if is_test:
+                x,y,_,_ = next(iter(loader))
+            else:
+                x,y = next(iter(loader))
 
         x = x.permute(0,2,3,1)
         y = y.permute(0,2,3,1)
