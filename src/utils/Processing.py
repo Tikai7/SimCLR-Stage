@@ -17,20 +17,34 @@ class RandomRotation90:
 class Processing:
 
     @staticmethod
-    def apply_rotogravure_effect(image, dot_size=2, intensity=128):
+    def apply_rotogravure_effect(image, dot_size=2, intensity=128, method="canny", alpha=0.9, beta=0.1):
         image = np.array(image)
-        normalized_image = image / 255.0
+        rotogravure_effect = None
+        
+        if method != "canny":
+            normalized_image = image / 255.0
 
-        dot_pattern = np.zeros((dot_size, dot_size), dtype=np.float32)
-        cv2.circle(dot_pattern, (dot_size // 2, dot_size // 2), dot_size // 4, 1, -1)
+            dot_pattern = np.zeros((dot_size, dot_size), dtype=np.float32)
+            cv2.circle(dot_pattern, (dot_size // 2, dot_size // 2), dot_size // 4, 1, -1)
 
-        tiled_pattern = np.tile(dot_pattern, (image.shape[0] // dot_size + 1, image.shape[1] // dot_size + 1))
-        tiled_pattern = tiled_pattern[:image.shape[0], :image.shape[1]]
+            tiled_pattern = np.tile(dot_pattern, (image.shape[0] // dot_size + 1, image.shape[1] // dot_size + 1))
+            tiled_pattern = tiled_pattern[:image.shape[0], :image.shape[1]]
 
-        pattern_intensity = intensity / 255.0
-        rotogravure_effect = normalized_image * (1 - pattern_intensity) + tiled_pattern * pattern_intensity
+            pattern_intensity = intensity / 255.0
+            rotogravure_effect = normalized_image * (1 - pattern_intensity) + tiled_pattern * pattern_intensity
 
-        rotogravure_effect = (rotogravure_effect * 255).astype(np.uint8)
+            rotogravure_effect = (rotogravure_effect * 255).astype(np.uint8)
+        else:
+            blurred = cv2.GaussianBlur(image, (5, 5), 0)
+        
+            edges = cv2.Canny(blurred, 100, 200)
+    
+            hatch = np.zeros_like(image)
+            hatch[::2, :] = 255  
+            hatch[:, ::2] = 255 
+        
+            combined = cv2.bitwise_or(edges, hatch)
+            rotogravure_effect = cv2.addWeighted(image, alpha, combined, beta, 0)
 
         return Image.fromarray(rotogravure_effect)
 

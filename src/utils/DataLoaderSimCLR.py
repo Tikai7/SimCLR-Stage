@@ -46,7 +46,7 @@ class DataLoaderSimCLR(Dataset):
         self.transform_simclr = transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.RandomApply([transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0))],p=0.5),
-                transforms.RandomApply([transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x))], p=0.5),
+                transforms.RandomApply([transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x))], p=1.0),
                 transforms.RandomApply([RandomRotation90()], p=0.2),
                 transforms.ToTensor(),  
                 transforms.Normalize(mean=[0.5], std=[0.5]),
