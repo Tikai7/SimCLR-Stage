@@ -4,14 +4,15 @@ import torchvision.models as models
 
 
 class SimCLRBranch(nn.Module):
-    def __init__(self, feature_size=128, use_context=False) -> None:
+    def __init__(self, feature_size=128, use_context=False, context_weights=1.0) -> None:
         super().__init__()
         self.use_context = use_context
-        self.RESNET_FEATURES_SIZE = 512
+        self.RESNET_FEATURES_SIZE = 2048
         self.BERT_FEATURES_SIZE = 768
+        self.context_weight = context_weights
         self.total_features = self.RESNET_FEATURES_SIZE + self.BERT_FEATURES_SIZE if use_context else self.RESNET_FEATURES_SIZE
 
-        resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
         resnet.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         resnet.fc = nn.Identity()
         self.feature_extractor = resnet    
@@ -26,15 +27,17 @@ class SimCLRBranch(nn.Module):
             C = torch.zeros(X.shape[0], self.BERT_FEATURES_SIZE).to(X.device)
         
         H = self.feature_extractor(X)
-        H = torch.cat((H, C), dim=1) if self.use_context else H 
+        if self.use_context:
+            C = C * self.context_weight  
+            H = torch.cat((H, C), dim=1)
         Z = self.projection_head(H.flatten(start_dim=1))
-        
+
         return H, Z
 
 class SimCLR(nn.Module):
-    def __init__(self, feature_size=128, use_context=False) -> None:
+    def __init__(self, feature_size=128, use_context=False, context_weights=1.0) -> None:
         super().__init__()
-        self.branch = SimCLRBranch(feature_size, use_context=use_context)
+        self.branch = SimCLRBranch(feature_size, use_context=use_context, context_weights=context_weights)
 
     def forward(self, X1, X2, C1=None, C2=None):
         H1, Z1 = self.branch(X1, C1)

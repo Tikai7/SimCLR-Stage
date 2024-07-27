@@ -19,7 +19,7 @@ to_enhance_path = "./files/to_enhance_pairs.txt"
 epochs = 30
 image_size = 256
 batch_size = 64
-learning_rate = 1e-3
+learning_rate = 1e-4
 train_ratio = 0.8
 val_ratio = 0.2
 temperature = 0.5
@@ -29,7 +29,7 @@ dataset = DSC(
     shape=(image_size, image_size), target_path=path_targets,
     to_enhance_path=to_enhance_path, bad_pairs_path=bad_pairs_path,
     path_sim_rol_test=path_sim_rol_test, max_images=40000,
-    augment_test=False, use_only_rol=True, use_context=True, remove_to_enhance_files=True, remove_bad_pairs=True
+    augment_test=False, use_only_rol=True, use_context=False, remove_to_enhance_files=True, remove_bad_pairs=True
 )
 
 train_size = int(train_ratio * len(dataset))
@@ -46,13 +46,11 @@ optimizer = torch.optim.AdamW
 loss_fn = NTXentLoss(temperature=temperature)
 
 trainer = Trainer()
-trainer.set_model(model, "SimCLR-RGC-512") \
+trainer.set_model(model, "SimCLR-RGG") \
 .set_optimizer(optimizer) \
 .set_loss(loss_fn) 
 
 model = trainer.fit(train_data=train_loader, validation_data=val_loader,
-                     learning_rate=learning_rate, verbose=True, epochs=epochs, sim_clr=True, use_context=True)
+                     learning_rate=learning_rate, verbose=True, epochs=epochs, sim_clr=True, use_context=False)
 
-trainer.save("model_simclr_RGC_512.pth","history_simclr_RGC_512.txt")
-
-
+trainer.save("model_simclr_RGG.pth","history_simclr_RGG.txt")

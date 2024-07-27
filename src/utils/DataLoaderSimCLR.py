@@ -46,13 +46,13 @@ class DataLoaderSimCLR(Dataset):
         self.transform_simclr = transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.RandomApply([transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0))],p=0.5),
-                transforms.RandomApply([transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x))], p=1.0),
+                transforms.RandomApply([transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x,method="grid"))], p=0.5),
                 transforms.RandomApply([RandomRotation90()], p=0.2),
                 transforms.ToTensor(),  
                 transforms.Normalize(mean=[0.5], std=[0.5]),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)], p=0.8),
-                transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.2, 0.5))], p=0.5)
+                # transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.2, 0.5))], p=0.5)
         ]) 
         
         self.transform = transforms.Compose([
