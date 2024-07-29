@@ -20,11 +20,11 @@ class JSONRetriever:
             with open(f"{path}/captions/{image_file}", "r") as f:
                 text = f.read()
             if augment:
-                print(text)
+                # print(text)
                 text = augmenter.augment(text)[0]
                 text = eda_augmenter.augment(text)
                 text = text[random.randint(0,len(text)-1)]
-                print(text)
+                # print(text)
 
             
             encoded_text = model(text).squeeze(0)

@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import torch.nn as nn
 import torchvision.models as models
 
@@ -22,14 +23,19 @@ class SimCLRBranch(nn.Module):
             nn.Linear(4 * feature_size, feature_size)
         )
     
+
     def forward(self, X, C=None):
         if C is None and self.use_context:
             C = torch.zeros(X.shape[0], self.BERT_FEATURES_SIZE).to(X.device)
         
         H = self.feature_extractor(X)
+        H = F.normalize(H, p=2, dim=1)
+
         if self.use_context:
+            C = F.normalize(C, p=2, dim=1)
             C = C * self.context_weight  
             H = torch.cat((H, C), dim=1)
+            
         Z = self.projection_head(H.flatten(start_dim=1))
 
         return H, Z
