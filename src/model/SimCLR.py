@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import torchvision.models as models
+from model.BERT import BertEncoder
 
 
 class SimCLRBranch(nn.Module):
@@ -13,6 +14,8 @@ class SimCLRBranch(nn.Module):
         self.context_weight = context_weights
         self.total_features = self.RESNET_FEATURES_SIZE + self.BERT_FEATURES_SIZE if use_context else self.RESNET_FEATURES_SIZE
 
+
+        self.bert = BertEncoder()
         resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
         resnet.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         resnet.fc = nn.Identity()
@@ -24,14 +27,12 @@ class SimCLRBranch(nn.Module):
         )
     
 
-    def forward(self, X, C=None):
-        if C is None and self.use_context:
-            C = torch.zeros(X.shape[0], self.BERT_FEATURES_SIZE).to(X.device)
-        
+    def forward(self, X, C="<UNK>"):
         H = self.feature_extractor(X)
         H = F.normalize(H, p=2, dim=1)
 
         if self.use_context:
+            C = self.bert(C).squeeze(0)
             C = F.normalize(C, p=2, dim=1)
             C = C * self.context_weight  
             H = torch.cat((H, C), dim=1)

@@ -14,7 +14,7 @@ class JSONRetriever:
     Class to retrieve images from JSON files.
     """
     @staticmethod
-    def get_encoded_captions(model, image_file, path, target=False, augment=False):            
+    def get_captions(image_file, path, target=False, augment=False):            
         try:
             image_file = image_file.split('\\')[1].replace('.jpg','.txt') if target else image_file+'.txt'
             with open(f"{path}/captions/{image_file}", "r") as f:
@@ -25,13 +25,10 @@ class JSONRetriever:
                 text = eda_augmenter.augment(text)
                 text = text[random.randint(0,len(text)-1)]
                 # print(text)
-
-            
-            encoded_text = model(text).squeeze(0)
-            return encoded_text
+            return text
         except Exception as e:
             print(f"[ERROR] {e}")
-            return None
+            return "<UNK>"
 
     @staticmethod
     def get_encoded_context(model, path, path_json, target=False, folder_root="json_filtered"):

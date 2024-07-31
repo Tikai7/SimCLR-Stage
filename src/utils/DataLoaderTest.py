@@ -24,8 +24,8 @@ class DataLoaderTest(Dataset):
         self.use_context = use_context
         self.path_sim_test = path_to_sim_test
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = BertEncoder()
-        self.model.to(self.device)
+        # self.model = BertEncoder()
+        # self.model.to(self.device)
         self.path_rol = path_rol
         self.path_sim_rol_nn_extracted = path_sim_rol
 
@@ -76,8 +76,8 @@ class DataLoaderTest(Dataset):
         if self.use_context:
             img_file = img_file.split("_ID")[0]
             target_file = target_file.split("_ID")[0].replace(".jpg","")
-            img_context = JR.get_encoded_captions(self.model, img_file, self.path_rol)
-            target_context = JR.get_encoded_captions(self.model, target_file, self.path_sim_rol_nn_extracted, augment=False)
+            img_context = JR.get_captions(img_file, self.path_rol)
+            target_context = JR.get_captions(target_file, self.path_sim_rol_nn_extracted, augment=False)
 
             return img_t, target_t, np.array(img), np.array(target), img_context, target_context
 
