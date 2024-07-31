@@ -5,7 +5,6 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from utils.Processing import Processing as PC
 from utils.JSONRetriever import JSONRetriever as JR
-from model.BERT import BertEncoder
 from PIL import Image
 
 path_rol_comp = "C:/Cours-Sorbonne/M1/Stage/src/data/rol_compressed" 
@@ -24,8 +23,6 @@ class DataLoaderTest(Dataset):
         self.use_context = use_context
         self.path_sim_test = path_to_sim_test
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        # self.model = BertEncoder()
-        # self.model.to(self.device)
         self.path_rol = path_rol
         self.path_sim_rol_nn_extracted = path_sim_rol
 

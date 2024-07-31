@@ -9,8 +9,7 @@ class BertEncoder(nn.Module):
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    def forward(self, text):
-        inputs = self.tokenizer.encode_plus(text, return_tensors='pt', add_special_tokens=True)
+    def forward(self, inputs):
         input_ids = inputs['input_ids']
         attention_mask = inputs['attention_mask']        
         

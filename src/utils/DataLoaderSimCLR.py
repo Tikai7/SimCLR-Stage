@@ -11,7 +11,6 @@ from utils.Processing import Processing as PC
 from torchvision import transforms
 from PIL import Image
 from model.SIFT import SIFTDetector
-from model.BERT import BertEncoder
 
 import matplotlib.pyplot as plt
 
@@ -39,8 +38,7 @@ class DataLoaderSimCLR(Dataset):
         self.path_sim_rol_nn_extracted = path_sim_rol_nn_extracted
         self.shape = shape
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        # self.model = BertEncoder()
-        # self.model.to(self.device)
+
         
         kernel_size = int(0.1 * self.shape[0]) if (int(0.1 * self.shape[0])%2 != 0) else int(0.1 * self.shape[0])-1
         self.transform_simclr = transforms.Compose([
@@ -152,24 +150,17 @@ class DataLoaderSimCLR(Dataset):
             img = self.transform(img)
 
             if self.use_context:
-                
                 img_context, target_context = None,None
-
                 img_context = JR.get_captions(image_file, self.path_rol)
 
                 if not self.use_only_rol:
-                    # img_context = JR.get_encoded_context(image_file, self.path_rol)
-                    # target_context = JR.get_encoded_context(target_file, self.path_sim_rol_nn_extracted, target=True)
                     target_context = JR.get_captions(target_file, self.path_sim_rol_nn_extracted, target=True, augment=False)
                 else:
-                    # img_context = JR.get_encoded_context(image_file, self.path_rol, folder_root="json")
                     target_context = JR.get_captions(image_file, self.path_rol, augment=True)
-
 
                 if target_context is None or img_context is None:
                     print("[WARNING] No context provided")
-                    target_context = img_context = "<UNK>"
-
+                    target_context, img_context = "<UNK>"
 
                 return img, target, img_context, target_context
             
