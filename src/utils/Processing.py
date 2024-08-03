@@ -35,16 +35,16 @@ class Processing:
 
             rotogravure_effect = (rotogravure_effect * 255).astype(np.uint8)
         else:
-            blurred = cv2.GaussianBlur(image, (5, 5), 0)
+            # blurred = cv2.GaussianBlur(image, (5, 5), 0)
         
-            edges = cv2.Canny(blurred, 100, 200)
+            # edges = cv2.Canny(blurred, 100, 200)
     
             hatch = np.zeros_like(image)
             hatch[::2, :] = 255  
             hatch[:, ::2] = 255 
         
-            combined = cv2.bitwise_or(edges, hatch)
-            rotogravure_effect = cv2.addWeighted(image, alpha, combined, beta, 0)
+            # combined = cv2.bitwise_or(edges, hatch)
+            rotogravure_effect = cv2.addWeighted(image, alpha, hatch, beta, 0)
 
         return Image.fromarray(rotogravure_effect)
 

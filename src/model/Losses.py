@@ -26,7 +26,6 @@ class NTXentLoss(nn.Module):
 
         return y_loss
 
-
 class SSIMLoss(torch.nn.Module):
     def __init__(self, window_size=11, size_average=True):
         super(SSIMLoss, self).__init__()

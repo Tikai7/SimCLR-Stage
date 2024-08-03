@@ -6,6 +6,7 @@ import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
 import torch.nn.functional as F
+from transformers import BertTokenizer
 
 from model.SIFT import SIFTDetector
 from tqdm import tqdm
@@ -13,6 +14,7 @@ from utils.Plotter import Plotter as PL
 from PIL import Image
 from sklearn.neighbors import NearestNeighbors
 
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 path_sift_rol = "C:/Cours-Sorbonne/M1/Stage/src/params/rol" 
 path_sift_sim_rol = "C:/Cours-Sorbonne/M1/Stage/src/params/sim_rol" 
@@ -237,12 +239,16 @@ class Similarity:
                             batch_x, batch_y, batch_w, batch_z, context_x, context_y = data
                             batch_x, batch_y = batch_x.to(device), batch_y.to(device)
                             batch_w, batch_z = batch_w.to(device), batch_z.to(device)
-                            context_x, context_y = context_x.to(device), context_y.to(device)
+                            context_x = tokenizer(list(context_x), padding=True, return_tensors='pt', add_special_tokens=True)
+                            context_y = tokenizer(list(context_y), padding=True, return_tensors='pt', add_special_tokens=True)
+
                             output = model(batch_x, batch_y, context_x, context_y)
                         else:
                             batch_x, batch_y, context_x, context_y = data
                             batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-                            context_x, context_y = context_x.to(device), context_y.to(device)
+                            context_x = tokenizer(list(context_x), padding=True, return_tensors='pt', add_special_tokens=True)
+                            context_y = tokenizer(list(context_y), padding=True, return_tensors='pt', add_special_tokens=True)
+
                             output = model(batch_x, batch_y, context_x, context_y)
                     elif is_test:
                         batch_x, batch_y, batch_w, batch_z = data
