@@ -21,40 +21,30 @@ class SimCLRBranch(nn.Module):
         resnet.fc = nn.Identity()
         self.feature_extractor = resnet    
 
-        self.resnet_projection_head = nn.Sequential(
-            nn.Linear(self.RESNET_FEATURES_SIZE , 4 * feature_size),
-            nn.GELU(),
-            nn.Linear(4 * feature_size, feature_size)
-        )
-
-        self.bert_projection_head = nn.Sequential(
-            nn.Linear(self.BERT_FEATURES_SIZE , 4 * feature_size),
-            nn.GELU(),
-            nn.Linear(4 * feature_size, feature_size)
-        )
-
         self.final_projection_head = nn.Sequential(
-            nn.Linear(2*feature_size, feature_size),
+            nn.Linear(feature_size + self.BERT_FEATURES_SIZE, 4 * feature_size),
+            nn.GELU(),
+            nn.Linear(4 * feature_size, feature_size)
+        )
+
+        self.projection_head = nn.Sequential(
+            nn.Linear(self.RESNET_FEATURES_SIZE , 4 * feature_size),
+            nn.ReLU(),
+            nn.Linear(4 * feature_size, feature_size)
         )
     
-
     def forward(self, X, C="<UNK>"):
         H = self.feature_extractor(X)
-        H = F.normalize(H, p=2, dim=1)
+        Z = self.projection_head(H.flatten(start_dim=1))
 
         if self.use_context:
             C = self.bert(C)
             C = F.normalize(C, p=2, dim=1)
-            # C = C * self.context_weight  
-            ZH = self.resnet_projection_head(H.flatten(start_dim=1))
-            ZC = self.bert_projection_head(C.flatten(start_dim=1))
-            HC = torch.cat((ZH, ZC), dim=1)
-            Z = self.final_projection_head(HC)
-            return HC, Z
-        else:
-            Z = self.resnet_projection_head(H.flatten(start_dim=1))
-            return H, Z
-        
+            Z = F.normalize(Z, p=2, dim=1)
+            Z = torch.cat((Z,C), dim=1)
+            Z = self.final_projection_head(Z)
+
+        return H, Z
         
 class SimCLR(nn.Module):
     def __init__(self, feature_size=128, use_context=False, context_weights=1.0) -> None:

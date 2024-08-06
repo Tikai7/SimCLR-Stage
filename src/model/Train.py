@@ -61,6 +61,8 @@ class Trainer:
         self.history["params"]["epochs"] = epochs
         self.history["params"]["is_val"] = True if validation_data is not None else False
 
+
+        best_loss = float('inf')
         for epoch in tqdm(range(epochs)):
             train_loss, val_loss = None, None
             if sim_clr :
@@ -74,8 +76,12 @@ class Trainer:
 
             self.history['train']['loss'].append(train_loss)
             self.history['validation']['loss'].append(val_loss)
-
             
+            if val_loss < best_loss:
+                best_loss = val_loss
+                best_model = self.model 
+
+        self.model = best_model
         return self.model
 
 

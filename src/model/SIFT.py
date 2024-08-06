@@ -4,6 +4,7 @@ import pickle
 from tqdm import tqdm
 import concurrent.futures
 
+
 class SIFTDetector:
     @staticmethod
     def computeSIFT(image):
@@ -11,7 +12,8 @@ class SIFTDetector:
             sift_detector = cv2.SIFT_create()
             kp, des = sift_detector.detectAndCompute(image, None)
             return kp, des
-        except:
+        except Exception as e:
+            print(e)
             return None, None
         
     @staticmethod
