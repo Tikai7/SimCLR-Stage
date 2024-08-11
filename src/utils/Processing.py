@@ -11,13 +11,14 @@ class RandomRotation90:
         pass
     
     def __call__(self, img):
+        # Randomly choose between 90 or -90 degrees
         angle = random.choice([90, -90])
         return img.rotate(angle, expand=True)
     
 class Processing:
 
     @staticmethod
-    def apply_rotogravure_effect(image, dot_size=2, intensity=128, method="canny", alpha=0.9, beta=0.1):
+    def apply_rotogravure_effect(image, dot_size=2, intensity=128, method="canny", alpha=0.5):
         image = np.array(image)
         rotogravure_effect = None
         
@@ -36,15 +37,12 @@ class Processing:
             rotogravure_effect = (rotogravure_effect * 255).astype(np.uint8)
         else:
             # blurred = cv2.GaussianBlur(image, (5, 5), 0)
-        
             # edges = cv2.Canny(blurred, 100, 200)
-    
             hatch = np.zeros_like(image)
             hatch[::2, :] = 255  
             hatch[:, ::2] = 255 
-        
             # combined = cv2.bitwise_or(edges, hatch)
-            rotogravure_effect = cv2.addWeighted(image, alpha, hatch, beta, 0)
+            rotogravure_effect = cv2.addWeighted(image, alpha, hatch, (1-alpha), 0)
 
         return Image.fromarray(rotogravure_effect)
 

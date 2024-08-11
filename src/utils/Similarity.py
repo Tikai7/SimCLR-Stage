@@ -13,6 +13,8 @@ from tqdm import tqdm
 from utils.Plotter import Plotter as PL 
 from PIL import Image
 from sklearn.neighbors import NearestNeighbors
+from model.BERT import BertEncoder
+
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
@@ -221,17 +223,22 @@ class Similarity:
 
 
     @staticmethod
-    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None, use_context=False, k=10, use_sift=False, is_test=False):
+    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None, use_context=False, alpha=0.5, k=10, use_sift=False, is_test=False):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[INFO] Matching on {device}")
         model.to(device)
         model.eval()
-
+        bert = BertEncoder()
+        bert.to(device)
+        bert.eval()
         if test_loader is not None:
             with torch.no_grad():
+
+                original_text_features, augmented_text_features = [], []
                 original_features, augmented_features = [], []
                 original_images, augmented_images = [], []
                 original_images_sift, augmented_images_sift = [], []
+
                 for data in tqdm(test_loader):
                     output = None
                     if use_context:
@@ -261,11 +268,17 @@ class Similarity:
                         output = model(batch_x, batch_y)
 
                     Z1, Z2 = output['projection_head']
+   
+
 
                     original_features.append(Z1.cpu())
                     augmented_features.append(Z2.cpu())
                     original_images.append(batch_x.cpu())
                     augmented_images.append(batch_y.cpu())
+
+                    if use_context:
+                        original_text_features.append(bert(context_x).cpu())
+                        augmented_text_features.append(bert(context_y).cpu())
                     
                     if use_sift:
                         original_images_sift.append(batch_w.cpu())
@@ -277,14 +290,22 @@ class Similarity:
             original_images = torch.cat(original_images, dim=0)
             augmented_images = torch.cat(augmented_images, dim=0)
 
+            if use_context:
+                original_text_features = torch.cat(original_text_features, dim=0)
+                augmented_text_features = torch.cat(augmented_text_features, dim=0)
+
             if use_sift:
                 original_images_sift = torch.cat(original_images_sift, dim=0)
                 augmented_images_sift = torch.cat(augmented_images_sift, dim=0)
                 original_sift_features = [SIFTDetector.computeSIFT(img.numpy()) for img in original_images_sift]
                 augmented_sift_features = [SIFTDetector.computeSIFT(img.numpy()) for img in augmented_images_sift]
 
+
+            sim_matrix_text = F.cosine_similarity(original_text_features.unsqueeze(1), augmented_text_features.unsqueeze(0), dim=-1)
             sim_matrix = F.cosine_similarity(original_features.unsqueeze(1), augmented_features.unsqueeze(0), dim=-1)
-            top_k_indices = torch.topk(sim_matrix, k, dim=1).indices
+
+            sim_matrix_combined = alpha*sim_matrix + (1-alpha)*sim_matrix_text
+            top_k_indices = torch.topk(sim_matrix_combined, k, dim=1).indices
             true_indices = torch.arange(len(top_k_indices)).unsqueeze(1)
 
             if use_sift :

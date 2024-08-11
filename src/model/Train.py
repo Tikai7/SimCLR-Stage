@@ -1,6 +1,7 @@
 import torch
 import os
 from tqdm import tqdm
+from model.BERT import BertEncoder
 from transformers import BertTokenizer
 class Trainer:
     def __init__(self) -> None:
@@ -9,6 +10,9 @@ class Trainer:
         self.optimizer = None
         self.loss_fn = None
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.bert = BertEncoder()
+        self.bert.to(self.device)
+        self.bert.eval()
         self.history = {
             "params" : {
                 "lr": None,
@@ -124,10 +128,8 @@ class Trainer:
             if use_context:
                 batch_x, batch_y, context_x, context_y = data
                 batch_x, batch_y = batch_x.to(self.device), batch_y.to(self.device)
-
                 context_x = self.tokenizer(list(context_x), padding=True, return_tensors='pt', add_special_tokens=True)
                 context_y = self.tokenizer(list(context_y), padding=True, return_tensors='pt', add_special_tokens=True)
-
                 output = self.model(batch_x, batch_y, context_x, context_y)
             else:
                 batch_x, batch_y = data
@@ -136,6 +138,7 @@ class Trainer:
 
             Z1, Z2 = output["projection_head"]
             loss = self.loss_fn(Z1,Z2)
+                
             losses += loss.item()
             self.optimizer.zero_grad()
             loss.backward()
