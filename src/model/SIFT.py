@@ -6,8 +6,33 @@ import concurrent.futures
 
 
 class SIFTDetector:
+    """
+    Class that contains methods to apply the SIFT algorithm to an image.
+
+    Methods
+    -------
+    computeSIFT :  Compute the SIFT keypoints and descriptors of an image.
+    getBestMatch :  Get the best match between the SIFT descriptors of two images.
+    saveSIFTDescriptors :  Save the SIFT keypoints and descriptors of a list of images.
+    loadSIFTDescriptors :  Load the SIFT keypoints and descriptors of a list of images.
+    displayKeypoints :  Display the keypoints of two images.
+    """
+
+
+
     @staticmethod
-    def computeSIFT(image):
+    def computeSIFT(image : cv2.imread) -> tuple:
+        """
+        Compute the SIFT keypoints and descriptors of an image.
+        Args
+        ---------
+        image : cv2.imread
+            The image to compute the SIFT keypoints and descriptors of.
+        Returns
+        -------
+        tuple
+            The keypoints and descriptors of the image.
+        """
         try:
             sift_detector = cv2.SIFT_create()
             kp, des = sift_detector.detectAndCompute(image, None)
@@ -17,7 +42,23 @@ class SIFTDetector:
             return None, None
         
     @staticmethod
-    def getBestMatch(image_query_des, liste_descriptor):
+    def getBestMatch(image_query_des : list , liste_descriptor : list) -> list:
+        """
+        Get the best match between the SIFT descriptors of two images.
+        Args
+        ---------
+        image_query_des : list
+            The descriptors of the query image.
+        liste_descriptor : list
+            The list of descriptors of the images to compare to.
+        Returns
+        -------
+        list
+            The best match between the SIFT descriptors of the two images.
+        """
+    
+
+        # Function to compute the match between the query image and the other images
         def compute_match(i, des):
             bf = cv2.BFMatcher()
             matches = bf.knnMatch(image_query_des, des, k=2)
@@ -26,6 +67,7 @@ class SIFTDetector:
 
         all_matches = []
 
+        # Use ThreadPoolExecutor to parallelize the computation of the matches        
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             futures = {executor.submit(compute_match, i, des): i for i, des in enumerate(liste_descriptor)}
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(liste_descriptor)):
@@ -39,7 +81,17 @@ class SIFTDetector:
         return best_match
 
     @staticmethod
-    def saveSIFTDescriptors(all_images_sift, path):
+    def saveSIFTDescriptors(all_images_sift : list, path:str):
+        """
+        Save the SIFT keypoints and descriptors of a list of images.
+        Args
+        ---------
+        all_images_sift : list
+            The list of keypoints and descriptors of the images.
+        path : str
+            The path to save the keypoints and descriptors to.
+        """
+
         for i, image_sift in enumerate(all_images_sift):
             try:
                 kp, des = image_sift
@@ -51,7 +103,22 @@ class SIFTDetector:
             except:
                 continue
 
-    def loadSIFTDescriptors(path, num_sift):
+    def loadSIFTDescriptors(path : str, num_sift : int) -> list:
+
+        """
+        Load the SIFT keypoints and descriptors of a list of images.
+        Args
+        ---------
+        path : str
+            The path to load the keypoints and descriptors from.
+        num_sift : int
+            The number of SIFT descriptors to load.
+        Returns
+        -------
+        list
+            The list of keypoints and descriptors of the images.
+        """
+
         all_images_sift = []
         for i in tqdm(range(num_sift)):
             try: 
@@ -74,7 +141,30 @@ class SIFTDetector:
         return all_images_sift
 
     @staticmethod
-    def displayKeypoints(image_query, image_kp, image_best, image_best_kp, good_kp):
+    def displayKeypoints(
+        image_query : cv2.imread, 
+        image_kp : list, 
+        image_best : cv2.imread, 
+        image_best_kp : list, 
+        good_kp : list
+    ):
+
+        """
+        Display the keypoints of two images.
+        Args
+        ---------
+        image_query : cv2.imread
+            The query image.
+        image_kp : list
+            The keypoints of the query image.
+        image_best : cv2.imread
+            The best image.
+        image_best_kp : list
+            The keypoints of the best image.
+        good_kp : list
+            The best matches between the keypoints of the two images.
+        """
+
         image_result = cv2.drawMatchesKnn(image_query,image_kp,image_best,image_best_kp, good_kp, None, flags=2)
         plt.figure(figsize=(12,7))
         plt.imshow(image_result)

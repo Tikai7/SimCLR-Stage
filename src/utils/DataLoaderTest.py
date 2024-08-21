@@ -7,20 +7,18 @@ from utils.Processing import Processing as PC
 from utils.JSONRetriever import JSONRetriever as JR
 from PIL import Image
 
-path_rol_comp = "C:/Cours-Sorbonne/M1/Stage/src/data/rol_compressed" 
-
 class DataLoaderTest(Dataset):
 
     def __init__(self, 
-            path_rol="C:/Cours-Sorbonne/M1/Stage/src/data/rol_compressed" , path_sim_rol= "C:/Cours-Sorbonne/M1/Stage/src/data/similaires_rol_extracted_nn_compressed",
-            path_to_sim_test="",shape=(256,256), augment=False, use_context=False
+            path_rol="C:/Cours-Sorbonne/M1/Stage/src/data/rol_compressed" , 
+            path_sim_rol= "C:/Cours-Sorbonne/M1/Stage/src/data/similaires_rol_extracted_nn_compressed",
+            path_to_sim_test="",shape=(256,256), augment=False
         ) -> None:
         super().__init__()
         self.all_files = os.listdir(path_to_sim_test)
         self.all_files = sorted(self.all_files, key=lambda x:int(x.split("ID_")[1].split('.')[0]))
         self.shape = shape 
         self.augment = augment
-        self.use_context = use_context
         self.path_sim_test = path_to_sim_test
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.path_rol = path_rol
@@ -34,7 +32,7 @@ class DataLoaderTest(Dataset):
 
         self.augment_transform = transforms.Compose([
                 transforms.Resize(self.shape),
-                transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x)),
+                transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x, method="grid", intensity=128, dot_size=2)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5], std=[0.5])
         ]) 
@@ -69,13 +67,9 @@ class DataLoaderTest(Dataset):
         img_t = self.transform(img)
         target_t = self.transform(target) if not self.augment else self.augment_transform(target)
         
+        img_file = img_file.split("_ID")[0]
+        target_file = target_file.split("_ID")[0].replace(".jpg","")
+        img_context = JR.get_captions(img_file, self.path_rol)
+        target_context = JR.get_captions(target_file, self.path_sim_rol_nn_extracted, augment=False)
 
-        if self.use_context:
-            img_file = img_file.split("_ID")[0]
-            target_file = target_file.split("_ID")[0].replace(".jpg","")
-            img_context = JR.get_captions(img_file, self.path_rol)
-            target_context = JR.get_captions(target_file, self.path_sim_rol_nn_extracted, augment=False)
-
-            return img_t, target_t, np.array(img), np.array(target), img_context, target_context
-
-        return img_t, target_t, np.array(img), np.array(target)
+        return img_t, target_t, np.array(img), np.array(target), img_context, target_context

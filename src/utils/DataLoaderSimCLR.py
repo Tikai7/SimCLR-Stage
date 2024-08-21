@@ -11,12 +11,16 @@ from utils.Processing import Processing as PC
 from torchvision import transforms
 from PIL import Image
 from model.SIFT import SIFTDetector
-
 import matplotlib.pyplot as plt
 
-SSH = os.getcwd() != 'c:\\Cours-Sorbonne\\M1\\Stage\\src'
+
+## ONLY FOR SPECIFIC CASES (PPTI AT SORBONNE)
+## UNCOMMENT IF NEEDED
+
+# SSH = os.getcwd() != 'c:\\Cours-Sorbonne\\M1\\Stage\\src'
 
 class DataLoaderSimCLR(Dataset):
+    
     def __init__(
             self, path_rol, path_sim_rol_nn_extracted, path_json_filtered, 
             shape=(256,256),
@@ -25,13 +29,38 @@ class DataLoaderSimCLR(Dataset):
             to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
             path_sim_rol_test = "C:/Cours-Sorbonne/M1/Stage/src/data/data_PPTI/sim_rol_test",
             path_to_halftone_images = None,
-            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None, use_context=False,
-            remove_to_enhance_files=False, remove_bad_pairs=False, remove_sub_testset=True, encode_context=False
+            augment_test=False, use_only_rol=False, build_if_error = False, max_images=None,
+            remove_to_enhance_files=False, remove_bad_pairs=False, remove_sub_testset=True
     ) -> None:
 
+        """
+
+        DataLoaderSimCLR class to load the data for the SimCLR model
+        
+        Args:
+        -----
+            path_rol : str : the path to the ROL images
+            path_sim_rol_nn_extracted : str : the path to the extracted NN similars images
+            path_json_filtered : str : the path to the filtered json file
+            shape : tuple : the shape of the images
+            target_path : str : the path to the targets for the ROL images (testset)
+            bad_pairs_path : str : the path to the bad pairs
+            to_enhance_path : str : the path to the pairs to enhance
+            path_sim_rol_test : str : the path to the test set
+            path_to_halftone_images : str : the path to the halftone images
+            augment_test : bool : whether to augment the test set or not
+            use_only_rol : bool : whether to use only the ROL images or not
+            build_if_error : bool : whether to build the dataset if an error occurs or not
+            max_images : int : the maximum number of images to use
+            remove_to_enhance_files : bool : whether to remove the to enhance files or not
+            remove_bad_pairs : bool : whether to remove the bad pairs or not
+            remove_sub_testset : bool : whether to remove the sub test set or not
+        """
+
+    
         self.path_ht_rol = path_to_halftone_images
-        self.use_context = use_context
         self.use_only_rol = use_only_rol
+        self.use_only_test = not use_only_rol
         self.augment_test = augment_test
         self.path_filtered = path_json_filtered
         self.path_rol = path_rol
@@ -44,13 +73,14 @@ class DataLoaderSimCLR(Dataset):
         self.transform_simclr = transforms.Compose([
                 transforms.Resize(self.shape),  
                 transforms.RandomApply([transforms.RandomResizedCrop(size=self.shape, scale=(0.2, 1.0))],p=0.5),
-                transforms.RandomApply([transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x,method="grid"))], p=0.5),
+                transforms.RandomApply([transforms.Lambda(lambda x : PC.apply_rotogravure_effect(x,method="dot", dot_size=4, intensity=50))], p=0.5),
                 transforms.RandomApply([RandomRotation90()], p=0.2),
                 transforms.ToTensor(),  
                 transforms.Normalize(mean=[0.5], std=[0.5]),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomApply([transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)], p=0.8),
-                transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.2, 0.5))], p=0.5)
+                transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.2, 0.5))], p=0.5),
+                transforms.Lambda(lambda x : torch.clip(x,0,1))
         ]) 
         
         self.transform = transforms.Compose([
@@ -60,6 +90,17 @@ class DataLoaderSimCLR(Dataset):
         ])
 
         try:
+            # ----------------- Load the images -----------------
+            # |
+            # |__ if use_only_rol : use only the ROL dataset
+            # |__ if not, use the test set that has been created (targets.npy + images.npy)
+            # |__ if it fails, create the targets.npy and images.npy by setting build_if_error to True
+
+            # ----------------- Explanation -----------------
+            # |
+            # |__ The images.npy file contains the images from the ROL dataset that have been used to create the targets.npy file
+            # |__ The targets.npy file contains the best target image for each image in the ROL dataset
+            
             if self.use_only_rol  : 
                 self.test_images = np.load(target_path.replace("targets.npy","images.npy"), allow_pickle=True).tolist()
                 self.images_names = os.listdir(path_rol)[:max_images] if max_images is not None else os.listdir(path_rol)
@@ -88,13 +129,14 @@ class DataLoaderSimCLR(Dataset):
                 self.build_dataset(target_path)        
             else:
                 raise ImportError("Can import the dataset, please set build_if_error at 'True'")
-        
-        if not use_only_rol:
+
+    
+        ## IF USE ONLY ROL IS FALSE
+        if self.use_only_test :
             print(f"[INFO] Before filtering : {len(self.images_names)} images")
             bad_pairs = self._get_pairs(bad_pairs_path)
             to_enhance_pairs = self._get_pairs(to_enhance_path)
             
-            # Step 1: Remove None values
             filtered_images = []
             filtered_targets = []
 
@@ -102,8 +144,6 @@ class DataLoaderSimCLR(Dataset):
                 if x is not None and y is not None:
                     filtered_images.append(x)
                     filtered_targets.append(y)
-
-
 
             if remove_to_enhance_files:
                 filtered_images, filtered_targets = self._remove_pairs(filtered_images, filtered_targets, to_enhance_pairs)
@@ -118,8 +158,13 @@ class DataLoaderSimCLR(Dataset):
             self.target_names = filtered_targets
 
             print(f"[INFO] After filtering : {len(self.images_names)} images")
-            if SSH:
-                self.target_names = [x.replace('C:/Cours-Sorbonne/M1/Stage/src/','../').replace('similaires_rol_extracted_nn_compressed','sim_rol_super_compressed') for x in self.target_names.copy()]
+
+            
+            ## ONLY FOR SPECIFIC CASES (PPTI AT SORBONNE) 
+            ## UNCOMMENT IF NEEDED
+
+            # if SSH:
+                # self.target_names = [x.replace('C:/Cours-Sorbonne/M1/Stage/src/','../').replace('similaires_rol_extracted_nn_compressed','sim_rol_super_compressed') for x in self.target_names.copy()]
 
 
     def __len__(self):
@@ -134,10 +179,7 @@ class DataLoaderSimCLR(Dataset):
             target = None
             target_file = None
             
-            if self.path_ht_rol is not None:
-                target_image = Image.open(os.path.join(self.path_ht_rol,image_file)+".jpg").convert('L')
-                target = self.transform_simclr(target_image)
-            elif self.use_only_rol:
+            if self.use_only_rol:
                 target = self.transform_simclr(img)
             else:
                 target_file = self.target_names[idx]
@@ -149,23 +191,19 @@ class DataLoaderSimCLR(Dataset):
 
             img = self.transform(img)
 
-            if self.use_context:
-                img_context, target_context = None,None
-                img_context = JR.get_captions(image_file, self.path_rol)
+            img_context, target_context = None,None
+            img_context = JR.get_captions(image_file, self.path_rol)
 
-                if not self.use_only_rol:
-                    target_context = JR.get_captions(target_file, self.path_sim_rol_nn_extracted, target=True, augment=False)
-                else:
-                    target_context = JR.get_captions(image_file, self.path_rol, augment=True)
+            if not self.use_only_rol:
+                target_context = JR.get_captions(target_file, self.path_sim_rol_nn_extracted, target=True, augment=False)
+            else:
+                target_context = JR.get_captions(image_file, self.path_rol, augment=True)
 
-                if target_context is None or img_context is None:
-                    print("[WARNING] No context provided")
-                    target_context, img_context = "<UNK>"
-
-                return img, target, img_context, target_context
+            if target_context is None or img_context is None:
+                print("[WARNING] No context provided")
+                target_context, img_context = "<UNK>"
             
-            return img, target
-
+            return img, target, img_context, target_context        
         
         except Exception as e:
             print("[ERROR-GETITEM]", e)
@@ -174,6 +212,12 @@ class DataLoaderSimCLR(Dataset):
 
 
     def _get_test_files(self, path_to_sim_test):
+        """
+            Function to get the test files
+            @param path_to_sim_test : the path to the test set
+            @return test_files : the test files
+        """
+    
         temp_all_files = os.listdir(path_to_sim_test)
         temp_all_files = sorted(temp_all_files, key=lambda x:int(x.split("ID_")[1].split('.')[0]))
         temp_image_names = []
@@ -213,6 +257,12 @@ class DataLoaderSimCLR(Dataset):
                 return best_file
 
     def _get_pairs(self, path):
+        """
+            Function to get the pairs from a given path
+            @param path : the path to the file
+            @return pairs : the pairs
+        """
+    
         pairs = None
         with open(path,"r") as f :
             pairs = f.readlines()
@@ -220,6 +270,15 @@ class DataLoaderSimCLR(Dataset):
         return pairs
     
     def _remove_pairs(self, images, targets, pairs_to_remove):
+        """
+            Function to remove the pairs from the images and targets
+            @param images
+            @param targets
+            @param pairs_to_remove
+            @return filtered_images
+            @return filtered_targets
+        """
+        
         filtered_images = []
         filtered_targets = []
         for x, y in zip(images, targets):
@@ -243,22 +302,17 @@ class DataLoaderSimCLR(Dataset):
 
 
     @staticmethod
-    def show_data(loader, nb_images=1, use_context=False, is_test=False):
+    def show_data(loader, nb_images=1, is_test=False):
         """
             Function that show data from a given loader
             @param loader
         """
         assert nb_images < 32, "[ERROR] nb_images should be less than 32"
-        if use_context:
-            if is_test:
-                x, y,_,_,_,_ = next(iter(loader))
-            else:
-                x, y,_,_ = next(iter(loader))
+
+        if is_test:
+            x, y,_,_,_,_ = next(iter(loader))
         else:
-            if is_test:
-                x,y,_,_ = next(iter(loader))
-            else:
-                x,y = next(iter(loader))
+            x, y,_,_ = next(iter(loader))
 
         x = x.permute(0,2,3,1)
         y = y.permute(0,2,3,1)

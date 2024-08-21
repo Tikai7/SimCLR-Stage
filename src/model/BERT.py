@@ -1,12 +1,14 @@
 import torch 
 import torch.nn as nn
-from transformers import BertModel, BertTokenizer
+from transformers import BertModel
 
 class BertEncoder(nn.Module):
+    """
+        BERT encoder for extracting CLS embedding
+    """
     def __init__(self):
         super().__init__()
         self.bert = BertModel.from_pretrained('bert-base-uncased')
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def forward(self, inputs):

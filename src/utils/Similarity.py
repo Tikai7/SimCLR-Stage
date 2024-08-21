@@ -28,8 +28,36 @@ path_matches_mse = "C:/Cours-Sorbonne/M1/Stage/src/params/matches_mse.npy"
 path_matches_sift = "C:/Cours-Sorbonne/M1/Stage/src/params/matches_sift.npy"
 
 class Similarity:
+    """
+    Similarity class to compute similarity between images
+    
+    Methods
+    -------
+    match_images_with_mse(path, path_to_match, plot=False, nb_plot=10)
+        Match images using Mean Squared Error
+    match_images_with_sift(path, path_to_match, plot=False, nb_plot=10, only_features=False)
+        Match images using SIFT
+    match_images_with_resnet(path, path_to_match, threshold=1000, max_images=-1, plot=False, nb_plot=10, only_features=False)
+        Match images using ResNet50
+    match_images_with_simCLR(model, test_loader=None, alpha=0.5, k=10, use_sift=False, is_test=False)
+        Match images using SimCLR
+    """
+
+
     @staticmethod
     def match_images_with_mse(path, path_to_match, plot=False, nb_plot=10):
+        """
+        Match images using Mean Squared Error
+        Args:
+        -----
+            path (str): Path to the dataset
+            path_to_match (str): Path to the dataset to match
+            plot (bool): Whether to plot the images or not
+            nb_plot (int): Number of images to plot
+        Returns:
+        --------
+            best_matches (list): List of best matches
+        """
 
         def compute_mse(imageA, imageB):
             err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
@@ -65,6 +93,21 @@ class Similarity:
 
     @staticmethod
     def match_images_with_sift(path, path_to_match, plot=False, nb_plot=10, only_features=False):
+
+        """
+        Match images using SIFT
+        Args:
+        -----
+            path (str): Path to the dataset
+            path_to_match (str): Path to the dataset to match
+            plot (bool): Whether to plot the images or not
+            nb_plot (int): Number of images to plot
+            only_features (bool): Whether to return only the features or not
+        Returns:
+        --------
+            best_matches (list): List of best matches
+        """
+
         try:
             best_matches = np.load(path_matches_sift)
             return best_matches
@@ -122,13 +165,29 @@ class Similarity:
         return best_matches
 
     @staticmethod
-    def match_images_with_nn(path, path_to_match, threshold=1000, max_images=-1, plot=False, nb_plot=10, only_features=False):
+    def match_images_with_resnet(path, path_to_match, threshold=1000, max_images=-1, plot=False, nb_plot=10, only_features=False):
+
+        """
+        Match images using ResNet50
+        Args:
+        -----
+            path (str): Path to the dataset
+            path_to_match (str): Path to the dataset to match
+            threshold (int): Threshold for the distance
+            max_images (int): Maximum number of images to consider
+            plot (bool): Whether to plot the images or not
+            nb_plot (int): Number of images to plot
+            only_features (bool): Whether to return only the features or not
+        Returns:
+        --------
+            matches (list): List of best matches
+        """
+
         model = models.resnet50(pretrained=True)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to(device)
         model.eval()
         model = torch.nn.Sequential(*(list(model.children())[:-1]))
-        print(model)
         preprocess = transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
@@ -223,112 +282,116 @@ class Similarity:
 
 
     @staticmethod
-    def match_images_with_simCLR(model, test_loader=None, path=None, path_to_match=None, use_context=False, alpha=0.5, k=10, use_sift=False, is_test=False):
+    def match_images_with_simCLR(model, test_loader=None, alpha=0.5, k=10, use_sift=False, is_test=False):
+        """
+        Match images using SimCLR
+        Args:
+        -----
+            model (torch.nn.Module): SimCLR model
+            test_loader (torch.utils.data.DataLoader): Test loader
+            path (str): Path to the dataset
+            path_to_match (str): Path to the dataset to match
+            use_context (bool): Whether to use context or not
+            alpha (float): Alpha value
+            k (int): Number of top-k matches
+            use_sift (bool): Whether to use SIFT or not
+            is_test (bool): Whether that we are using a real test loader or not
+        Returns:
+        --------
+            top_k_indices (torch.Tensor): Top-k indices
+            original_images (torch.Tensor): Original images
+            augmented_images (torch.Tensor): Augmented images
+            precisions (list): List of precisions
+        """
+       
+       
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[INFO] Matching on {device}")
         model.to(device)
         model.eval()
+
         bert = BertEncoder()
         bert.to(device)
         bert.eval()
-        if test_loader is not None:
-            with torch.no_grad():
 
-                original_text_features, augmented_text_features = [], []
-                original_features, augmented_features = [], []
-                original_images, augmented_images = [], []
-                original_images_sift, augmented_images_sift = [], []
+        with torch.no_grad():
+            original_text_features, augmented_text_features = [], []
+            original_features, augmented_features = [], []
+            original_images, augmented_images = [], []
+            original_images_sift, augmented_images_sift = [], []
 
-                for data in tqdm(test_loader):
-                    output = None
-                    if use_context:
-                        if is_test:
-                            batch_x, batch_y, batch_w, batch_z, context_x, context_y = data
-                            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-                            batch_w, batch_z = batch_w.to(device), batch_z.to(device)
-                            context_x = tokenizer(list(context_x), padding=True, return_tensors='pt', add_special_tokens=True)
-                            context_y = tokenizer(list(context_y), padding=True, return_tensors='pt', add_special_tokens=True)
+            for data in tqdm(test_loader):
+                output = None
 
-                            output = model(batch_x, batch_y, context_x, context_y)
-                        else:
-                            batch_x, batch_y, context_x, context_y = data
-                            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-                            context_x = tokenizer(list(context_x), padding=True, return_tensors='pt', add_special_tokens=True)
-                            context_y = tokenizer(list(context_y), padding=True, return_tensors='pt', add_special_tokens=True)
+                if is_test:
+                    batch_x, batch_y, batch_w, batch_z, context_x, context_y = data
+                    batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                    batch_w, batch_z = batch_w.to(device), batch_z.to(device)
+                    context_x = tokenizer(list(context_x), padding=True, return_tensors='pt', add_special_tokens=True)
+                    context_y = tokenizer(list(context_y), padding=True, return_tensors='pt', add_special_tokens=True)
 
-                            output = model(batch_x, batch_y, context_x, context_y)
-                    elif is_test:
-                        batch_x, batch_y, batch_w, batch_z = data
-                        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-                        batch_w, batch_z = batch_w.to(device), batch_z.to(device)
-                        output = model(batch_x, batch_y)
-                    else:
-                        batch_x, batch_y = data
-                        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-                        output = model(batch_x, batch_y)
+                    output = model(batch_x, batch_y, context_x, context_y)
+                else:
+                    batch_x, batch_y, context_x, context_y = data
+                    batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                    context_x = tokenizer(list(context_x), padding=True, return_tensors='pt', add_special_tokens=True)
+                    context_y = tokenizer(list(context_y), padding=True, return_tensors='pt', add_special_tokens=True)
 
-                    Z1, Z2 = output['projection_head']
-   
+                    output = model(batch_x, batch_y, context_x, context_y)
+
+                Z1, Z2 = output['projection_head']
 
 
-                    original_features.append(Z1.cpu())
-                    augmented_features.append(Z2.cpu())
-                    original_images.append(batch_x.cpu())
-                    augmented_images.append(batch_y.cpu())
 
-                    if use_context:
-                        original_text_features.append(bert(context_x).cpu())
-                        augmented_text_features.append(bert(context_y).cpu())
-                    
-                    if use_sift:
-                        original_images_sift.append(batch_w.cpu())
-                        augmented_images_sift.append(batch_z.cpu())
-
-
-            original_features = torch.cat(original_features, dim=0)
-            augmented_features = torch.cat(augmented_features, dim=0)
-            original_images = torch.cat(original_images, dim=0)
-            augmented_images = torch.cat(augmented_images, dim=0)
-
-            if use_context:
-                original_text_features = torch.cat(original_text_features, dim=0)
-                augmented_text_features = torch.cat(augmented_text_features, dim=0)
-
-            if use_sift:
-                original_images_sift = torch.cat(original_images_sift, dim=0)
-                augmented_images_sift = torch.cat(augmented_images_sift, dim=0)
-                original_sift_features = [SIFTDetector.computeSIFT(img.numpy()) for img in original_images_sift]
-                augmented_sift_features = [SIFTDetector.computeSIFT(img.numpy()) for img in augmented_images_sift]
+                original_features.append(Z1.cpu())
+                augmented_features.append(Z2.cpu())
+                original_images.append(batch_x.cpu())
+                augmented_images.append(batch_y.cpu())
+                original_text_features.append(bert(context_x).cpu())
+                augmented_text_features.append(bert(context_y).cpu())
+                
+                if use_sift:
+                    original_images_sift.append(batch_w.cpu())
+                    augmented_images_sift.append(batch_z.cpu())
 
 
-            sim_matrix_text = F.cosine_similarity(original_text_features.unsqueeze(1), augmented_text_features.unsqueeze(0), dim=-1)
-            sim_matrix = F.cosine_similarity(original_features.unsqueeze(1), augmented_features.unsqueeze(0), dim=-1)
+        original_features = torch.cat(original_features, dim=0)
+        augmented_features = torch.cat(augmented_features, dim=0)
+        original_images = torch.cat(original_images, dim=0)
+        augmented_images = torch.cat(augmented_images, dim=0)
+        original_text_features = torch.cat(original_text_features, dim=0)
+        augmented_text_features = torch.cat(augmented_text_features, dim=0)
 
-            sim_matrix_combined = alpha*sim_matrix + (1-alpha)*sim_matrix_text
-            top_k_indices = torch.topk(sim_matrix_combined, k, dim=1).indices
-            true_indices = torch.arange(len(top_k_indices)).unsqueeze(1)
-
-            if use_sift :
-                for idx, (_, des) in enumerate(original_sift_features):
-                    if des is not None:
-                        best_matches = SIFTDetector.getBestMatch(des, [augmented_sift_features[i][1] for i in top_k_indices[idx]])
-                        top_k_indices[idx] = torch.tensor([top_k_indices[idx][match[0]] for match in best_matches])
-
-            for i in range(0, k + 1, 5):
-                top_n = i if i != 0 else 1
-                current_top_k_indices = top_k_indices[:, :top_n]
-                top_n_correct = (current_top_k_indices == true_indices).sum().item()
-                precision_top_n = top_n_correct / len(top_k_indices)
-                print(f"[INFO] Top-{top_n} Precision: {precision_top_n}")
-
-            return top_k_indices, original_images, augmented_images
-        
-        elif path is not None and path_to_match is not None:
-            pass
-        else:
-            print("[ERROR] You have to either specify a test_loader or path and path_to_match args")
+        if use_sift:
+            original_images_sift = torch.cat(original_images_sift, dim=0)
+            augmented_images_sift = torch.cat(augmented_images_sift, dim=0)
+            original_sift_features = [SIFTDetector.computeSIFT(img.numpy()) for img in original_images_sift]
+            augmented_sift_features = [SIFTDetector.computeSIFT(img.numpy()) for img in augmented_images_sift]
 
 
+        sim_matrix_text = F.cosine_similarity(original_text_features.unsqueeze(1), augmented_text_features.unsqueeze(0), dim=-1)
+        sim_matrix = F.cosine_similarity(original_features.unsqueeze(1), augmented_features.unsqueeze(0), dim=-1)
+
+        sim_matrix_combined = alpha*sim_matrix + (1-alpha)*sim_matrix_text
+        top_k_indices = torch.topk(sim_matrix_combined, k, dim=1).indices
+        true_indices = torch.arange(len(top_k_indices)).unsqueeze(1)
+
+        if use_sift :
+            for idx, (_, des) in enumerate(original_sift_features):
+                if des is not None:
+                    best_matches = SIFTDetector.getBestMatch(des, [augmented_sift_features[i][1] for i in top_k_indices[idx]])
+                    top_k_indices[idx] = torch.tensor([top_k_indices[idx][match[0]] for match in best_matches])
+
+        precisions = []
+        for i in range(0, k + 1, 5):
+            top_n = i if i != 0 else 1
+            current_top_k_indices = top_k_indices[:, :top_n]
+            top_n_correct = (current_top_k_indices == true_indices).sum().item()
+            precision_top_n = top_n_correct / len(current_top_k_indices)
+            precisions.append(precision_top_n)
+            print(f"[INFO] Top-{top_n} Precision: {precision_top_n}")
+
+        return top_k_indices, original_images, augmented_images, precisions
 
 
         

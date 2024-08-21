@@ -14,11 +14,20 @@ class JSONRetriever:
     Class to retrieve images from JSON files.
     """
     @staticmethod
-    def get_captions(image_file, path, target=False, augment=False):            
+    def get_captions(image_file, path, target=False, augment=False):          
+        """
+        Get captions from the images
+        @param image_file : name of the image
+        @param path : path of the image
+        @param target : if the image is going to be the target (in this case the image is in the sim_rol folder)
+        @param augment : if we want to augment the text
+        """
+
         try:
             image_file = image_file.split('\\')[1].replace('.jpg','.txt') if target else image_file+'.txt'
             with open(f"{path}/captions/{image_file}", "r") as f:
                 text = f.read()
+
             if augment:
                 # print(text)
                 text = augmenter.augment(text)[0]
@@ -108,6 +117,10 @@ class JSONRetriever:
     
     @staticmethod
     def get_all_relations(path_filered_json):
+        """
+        Get all the relations from the filtered json files.
+        @param path_filered_json: The path to the filtered json files.
+        """
         liste_ark = []
         liste_triplet = {}
 
@@ -128,6 +141,12 @@ class JSONRetriever:
             
     @staticmethod
     def assert_filtered_json(path_json_sim, path_json_filtered):
+        """
+        Assert the filtered json files.
+        @param path_json_sim: The path to the json sim files.
+        @param path_json_filtered: The path to the json filtered files.
+        """
+
         liste_ark, _ = JSONRetriever.get_all_relations(f'{path_json_filtered}')
         json_sim = os.listdir(f'{path_json_sim}')
         cpt = 0

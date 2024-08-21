@@ -57,7 +57,28 @@ class DataManager():
         left = right = (shape[1] - w) // 2
         color = [0, 0, 0]
         new_img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+
         return new_img
+
+
+    @staticmethod
+    def add_border_to_match_shape(img, shape):
+        """ Add black borders to an image to match the desired shape. """
+
+        h, w = img.shape[:2]
+        target_h, target_w = shape
+        top = bottom = left = right = 0
+
+        if h < target_h:
+            bottom = target_h - h
+        elif w < target_w:
+            right = target_w - w
+
+        color = [0, 0, 0]
+        new_img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+
+        return new_img
+
 
     @staticmethod
     def save_image(img, dest_path, file_name):
@@ -79,6 +100,7 @@ class DataManager():
         img = DataManager.read_image(file, path)
         resized_img = DataManager.resize_image(img, shape)
         final_img = DataManager.add_borders(resized_img, shape)
+        final_img = DataManager.add_border_to_match_shape(final_img, shape)
         DataManager.save_image(final_img, dest_path, file)
     
     @staticmethod
