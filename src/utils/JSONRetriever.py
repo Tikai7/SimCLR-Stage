@@ -14,7 +14,7 @@ class JSONRetriever:
     Class to retrieve images from JSON files.
     """
     @staticmethod
-    def get_captions(image_file, path, target=False, augment=False):          
+    def get_captions(image_file, path, target=False, augment=False, caption_folder="detailed-captions"):          
         """
         Get captions from the images
         @param image_file : name of the image
@@ -25,8 +25,11 @@ class JSONRetriever:
 
         try:
             image_file = image_file.split('\\')[1].replace('.jpg','.txt') if target else image_file+'.txt'
-            with open(f"{path}/captions/{image_file}", "r") as f:
+            with open(f"{path}/{caption_folder}/{image_file}", "r") as f:
                 text = f.read()
+            
+            text = text.split('. ')
+            text = '. '.join(text[:1])
 
             if augment:
                 # print(text)
