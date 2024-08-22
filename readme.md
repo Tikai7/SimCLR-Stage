@@ -31,9 +31,9 @@ Rearrange the top-K best images using the SIFT Descriptor for further refinement
 Please note that the provided dataloader is specifically built for these folders. If you use a different data structure, consider implementing a custom dataloader. The main contribution of this repository is the model implementation.
 
 - `data/`
-  - `data_pairs/`: Contains images with the target images extracted.
+  - `rol_sim_rol_visual_pairs/`: Contains images with the target images extracted.
     - `pairs0..1919/`
-  - `rol_sim_rol_pairs/`: Contains the target images corresponding to the images in the `sim_rol` folder.
+  - `rol_sim_rol_textual_pairs/`: Contains the target images corresponding to the images in the `sim_rol` folder.
     - `images.npy`
     - `targets.npy`
   - `rol/`: Contains images (e.g., `btv*.jpg`).
