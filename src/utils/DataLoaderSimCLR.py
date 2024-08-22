@@ -28,9 +28,8 @@ class DataLoaderSimCLR(Dataset):
             bad_pairs_path = "C:/Cours-Sorbonne/M1/Stage/src/files/bad_pairs.txt", 
             to_enhance_path = "C:/Cours-Sorbonne/M1/Stage/src/files/to_enhance_pairs.txt",
             path_sim_rol_test = "C:/Cours-Sorbonne/M1/Stage/src/data/data_PPTI/sim_rol_test",
-            path_to_halftone_images = None,
             augment_test=False, use_only_rol=False, build_if_error = False, max_images=None,
-            remove_to_enhance_files=False, remove_bad_pairs=False, remove_sub_testset=True
+            remove_to_enhance_files=False, remove_bad_pairs=True, remove_sub_testset=True
     ) -> None:
 
         """
@@ -47,7 +46,6 @@ class DataLoaderSimCLR(Dataset):
             bad_pairs_path : str : the path to the bad pairs
             to_enhance_path : str : the path to the pairs to enhance
             path_sim_rol_test : str : the path to the test set
-            path_to_halftone_images : str : the path to the halftone images
             augment_test : bool : whether to augment the test set or not
             use_only_rol : bool : whether to use only the ROL images or not
             build_if_error : bool : whether to build the dataset if an error occurs or not
@@ -58,7 +56,6 @@ class DataLoaderSimCLR(Dataset):
         """
 
     
-        self.path_ht_rol = path_to_halftone_images
         self.use_only_rol = use_only_rol
         self.use_only_test = not use_only_rol
         self.augment_test = augment_test

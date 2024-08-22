@@ -7,7 +7,10 @@ from utils.Similarity import Similarity as SMY
 from utils.Plotter import Plotter as PL
 
 
+path_rol_comp = "../data/rol_super_compressed" 
+path_sim_rol_extracted_comp = "../data/sim_rol_super_compressed" 
 path_sim_rol_test = "src/data/data_PPTI/sim_rol_test"
+
 batch_size = 32
 
 model = SimCLR(feature_size=128)
@@ -15,7 +18,11 @@ model_state = Trainer().get_model("C:/Cours-Sorbonne/M1/Stage/src/params/model/m
 model.load_state_dict(model_state)
 history = Trainer().get_history("C:/Cours-Sorbonne/M1/Stage/src/params/model/history_simclr_RGC.txt")
 
-testset = DLT(path_to_sim_test=path_sim_rol_test, augment=False)
+testset = DLT(
+    path_rol=path_rol_comp, path_sim_rol=path_sim_rol_extracted_comp,
+    path_to_sim_test=path_sim_rol_test, augment=False
+)
+
 test_loader = DataLoader(testset, batch_size=batch_size, shuffle=True)
 
 top_k_pairs, original_images, augmented_images, precisions = SMY.match_images_with_simCLR(

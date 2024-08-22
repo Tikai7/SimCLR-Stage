@@ -12,8 +12,17 @@ class DataLoaderTest(Dataset):
     def __init__(self, 
             path_rol="C:/Cours-Sorbonne/M1/Stage/src/data/rol_compressed" , 
             path_sim_rol= "C:/Cours-Sorbonne/M1/Stage/src/data/similaires_rol_extracted_nn_compressed",
-            path_to_sim_test="",shape=(256,256), augment=False
+            path_to_sim_test="", shape=(256,256), augment=False
         ) -> None:
+        """
+        Args:
+            path_rol (str): Path to the compressed ROL images.
+            path_sim_rol (str): Path to the compressed SIM_ROL images.
+            path_to_sim_test (str): Path to the SIM_ROL test images.
+            shape (tuple): Shape of the images.
+            augment (bool): If True, apply data augmentation to the target images.
+            
+        """
         super().__init__()
         self.all_files = os.listdir(path_to_sim_test)
         self.all_files = sorted(self.all_files, key=lambda x:int(x.split("ID_")[1].split('.')[0]))
