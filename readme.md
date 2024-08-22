@@ -24,6 +24,9 @@ Rearrange the top-K best images using the SIFT Descriptor for further refinement
 
 ## Requirements
 
+### Packages  : 
+``pip install -r requirements.txt``
+
 ### Folders Structure
 Please note that the provided dataloader is specifically built for these folders. If you use a different data structure, consider implementing a custom dataloader. The main contribution of this repository is the model implementation.
 
